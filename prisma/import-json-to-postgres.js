@@ -145,7 +145,7 @@ async function main() {
           id: notification.id,
           title: notification.title,
           message: notification.message,
-          read: notification.read,
+          read: Boolean(notification.read),
           type: notification.type || "GENERAL",
           createdAt: new Date(notification.createdAt),
           updatedAt: new Date(notification.updatedAt)
