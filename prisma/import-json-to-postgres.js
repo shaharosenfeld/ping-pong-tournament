@@ -14,7 +14,7 @@ async function main() {
     const exportPath = path.join(__dirname, 'db-export.json')
     if (!fs.existsSync(exportPath)) {
       console.error(`קובץ הייצוא לא נמצא: ${exportPath}`)
-      console.error(`אנא הרץ קודם את סקריפט הייצוא: node prisma/export-sqlite-to-json.js`)
+      console.error(`אנא הרץ קודם את סקריפט הייצוא: node prisma/direct-export.js`)
       process.exit(1)
     }
     
@@ -33,17 +33,19 @@ async function main() {
     
     // יבוא משתמשים
     console.log('מייבא משתמשים...')
-    await prisma.user.createMany({
-      data: users.map(user => ({
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        isAdmin: user.role === 'admin' ? true : false, // המרה מ-role לשדה isAdmin
-        password: user.password,
-        createdAt: new Date(user.createdAt),
-        updatedAt: new Date(user.updatedAt)
-      }))
-    })
+    for (const user of users) {
+      await prisma.user.create({
+        data: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role || 'user',
+          password: user.password,
+          createdAt: new Date(user.createdAt),
+          updatedAt: new Date(user.updatedAt)
+        }
+      })
+    }
     
     // יבוא טורנירים
     console.log('מייבא טורנירים...')
@@ -53,8 +55,15 @@ async function main() {
           id: tournament.id,
           name: tournament.name,
           description: tournament.description || null,
-          startDate: tournament.startDate ? new Date(tournament.startDate) : null,
+          startDate: tournament.startDate ? new Date(tournament.startDate) : new Date(),
           endDate: tournament.endDate ? new Date(tournament.endDate) : null,
+          status: tournament.status || 'draft',
+          format: tournament.format || 'knockout',
+          maxPlayers: tournament.maxPlayers || 8,
+          rounds: tournament.rounds || 1,
+          groupCount: tournament.groupCount || null,
+          advanceCount: tournament.advanceCount || null,
+          location: tournament.location || null,
           createdAt: new Date(tournament.createdAt),
           updatedAt: new Date(tournament.updatedAt)
         }
@@ -70,9 +79,13 @@ async function main() {
           name: player.name,
           email: player.email || null,
           phone: player.phone || null,
-          avatarUrl: player.avatar || null, // המרה מ-avatar לשדה avatarUrl
+          avatar: player.avatar || null,
+          initials: player.initials || null,
+          level: player.level || 3,
           bio: player.bio || null,
-          status: "ACTIVE", // קבוע עבור ה-PostgreSQL
+          rating: player.rating || 1000,
+          wins: player.wins || 0,
+          losses: player.losses || 0,
           createdAt: new Date(player.createdAt),
           updatedAt: new Date(player.updatedAt)
         }
@@ -101,13 +114,23 @@ async function main() {
           player1Id: match.player1Id,
           player2Id: match.player2Id,
           tournamentId: match.tournamentId,
-          player1Score: match.player1Score || 0,
-          player2Score: match.player2Score || 0,
-          scheduledDate: match.date ? new Date(match.date) : null, // המרה מ-date לשדה scheduledDate
-          status: match.status === 'scheduled' ? 'SCHEDULED' : 
-                  match.status === 'in_progress' ? 'IN_PROGRESS' : 
-                  match.status === 'completed' ? 'COMPLETED' : 'SCHEDULED',
-          round: match.round || null,
+          player1Score: match.player1Score || null,
+          player2Score: match.player2Score || null,
+          player1Game1Score: match.player1Game1Score || null,
+          player2Game1Score: match.player2Game1Score || null,
+          player1Game2Score: match.player1Game2Score || null,
+          player2Game2Score: match.player2Game2Score || null,
+          player1Game3Score: match.player1Game3Score || null,
+          player2Game3Score: match.player2Game3Score || null,
+          player1Wins: match.player1Wins || 0,
+          player2Wins: match.player2Wins || 0,
+          currentGame: match.currentGame || 1,
+          round: match.round || 1,
+          stage: match.stage || null,
+          groupName: match.groupName || null,
+          status: match.status || 'scheduled',
+          date: match.date ? new Date(match.date) : null,
+          bestOfThree: match.bestOfThree || false,
           createdAt: new Date(match.createdAt),
           updatedAt: new Date(match.updatedAt)
         }
