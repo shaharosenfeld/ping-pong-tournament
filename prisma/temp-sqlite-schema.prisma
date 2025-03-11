@@ -1,0 +1,79 @@
+// This is your Prisma schema file for SQLite,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated/sqlite-client"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:../dev.db"
+}
+
+model User {
+  id           String         @id @default(cuid())
+  email        String         @unique
+  name         String?
+  isAdmin      Boolean        @default(false)
+  password     String
+  notifications Notification[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+model Tournament {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  startDate   DateTime?
+  endDate     DateTime?
+  players     Player[]
+  matches     Match[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Player {
+  id           String       @id @default(cuid())
+  name         String
+  email        String?
+  phone        String?
+  avatarUrl    String?
+  bio          String?
+  status       String       @default("ACTIVE")
+  tournaments  Tournament[]
+  player1Matches Match[]     @relation("Player1")
+  player2Matches Match[]     @relation("Player2")
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+model Match {
+  id            String      @id @default(cuid())
+  player1       Player      @relation("Player1", fields: [player1Id], references: [id], onDelete: Cascade)
+  player1Id     String
+  player2       Player      @relation("Player2", fields: [player2Id], references: [id], onDelete: Cascade)
+  player2Id     String
+  tournament    Tournament  @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  tournamentId  String
+  player1Score  Int         @default(0)
+  player2Score  Int         @default(0)
+  scheduledDate DateTime?
+  status        String      @default("SCHEDULED")
+  round         Int?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  title     String
+  message   String
+  read      Boolean   @default(false)
+  type      String    @default("GENERAL")
+  user      User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+} 
