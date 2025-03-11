@@ -1,0 +1,102 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String?
+  role      String   @default("user")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Tournament {
+  id           String   @id @default(uuid())
+  name         String
+  description  String?
+  startDate    DateTime
+  endDate      DateTime?
+  status       String   @default("draft") // draft, active, completed
+  format       String   @default("knockout") // knockout, league, groups_knockout
+  maxPlayers   Int      @default(8)
+  rounds       Int      @default(1) // 1 for single, 2 for double (used in both knockout and league formats)
+  groupCount   Int?     // Number of groups for groups_knockout format
+  advanceCount Int?     // Number of players advancing from each group
+  location     String?
+  players      Player[]
+  matches      Match[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Player {
+  id           String        @id @default(uuid())
+  name         String
+  email        String?
+  phone        String?
+  avatar       String?      // URL to profile image
+  initials     String?      // For avatar fallback
+  level        Int          @default(3)  // 1-5 scale
+  bio          String?      // Player description
+  rating       Int          @default(1000)  // ELO rating
+  wins         Int          @default(0)
+  losses       Int          @default(0)
+  tournaments  Tournament[]
+  matchesAsP1  Match[]      @relation("Player1")
+  matchesAsP2  Match[]      @relation("Player2")
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+model Match {
+  id           String     @id @default(uuid())
+  tournament   Tournament @relation(fields: [tournamentId], references: [id])
+  tournamentId String
+  player1      Player     @relation("Player1", fields: [player1Id], references: [id])
+  player1Id    String
+  player2      Player     @relation("Player2", fields: [player2Id], references: [id])
+  player2Id    String
+  player1Score Int?
+  player2Score Int?
+  player1Game1Score Int?
+  player2Game1Score Int?
+  player1Game2Score Int?
+  player2Game2Score Int?
+  player1Game3Score Int?
+  player2Game3Score Int?
+  player1Wins      Int     @default(0)  // Number of games won by player1
+  player2Wins      Int     @default(0)  // Number of games won by player2
+  currentGame      Int     @default(1)  // Current game number (1, 2, or 3)
+  round        Int        @default(1)  // Added round field for league format
+  stage        String?    // group, knockout, final, etc.
+  groupName    String?    // For group stage matches (e.g., "Group A")
+  status       String     @default("scheduled") // scheduled, in_progress, completed
+  date         DateTime?
+  bestOfThree  Boolean    @default(false) // האם המשחק הוא בשיטת הטוב מ-3
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  title     String
+  message   String
+  type      String   // tournament, match, player, system
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
