@@ -38,7 +38,7 @@ async function main() {
         id: user.id,
         email: user.email,
         name: user.name,
-        isAdmin: user.isAdmin,
+        isAdmin: user.role === 'admin' ? true : false, // המרה מ-role לשדה isAdmin
         password: user.password,
         createdAt: new Date(user.createdAt),
         updatedAt: new Date(user.updatedAt)
@@ -47,74 +47,87 @@ async function main() {
     
     // יבוא טורנירים
     console.log('מייבא טורנירים...')
-    await prisma.tournament.createMany({
-      data: tournaments.map(tournament => ({
-        id: tournament.id,
-        name: tournament.name,
-        description: tournament.description || null,
-        startDate: tournament.startDate ? new Date(tournament.startDate) : null,
-        endDate: tournament.endDate ? new Date(tournament.endDate) : null,
-        createdAt: new Date(tournament.createdAt),
-        updatedAt: new Date(tournament.updatedAt)
-      }))
-    })
+    for (const tournament of tournaments) {
+      await prisma.tournament.create({
+        data: {
+          id: tournament.id,
+          name: tournament.name,
+          description: tournament.description || null,
+          startDate: tournament.startDate ? new Date(tournament.startDate) : null,
+          endDate: tournament.endDate ? new Date(tournament.endDate) : null,
+          createdAt: new Date(tournament.createdAt),
+          updatedAt: new Date(tournament.updatedAt)
+        }
+      })
+    }
     
     // יבוא שחקנים
     console.log('מייבא שחקנים...')
-    await prisma.player.createMany({
-      data: players.map(player => ({
-        id: player.id,
-        name: player.name,
-        email: player.email || null,
-        phone: player.phone || null,
-        avatarUrl: player.avatarUrl || null,
-        bio: player.bio || null,
-        status: player.status,
-        createdAt: new Date(player.createdAt),
-        updatedAt: new Date(player.updatedAt)
-      }))
-    })
-    
-    // יבוא משחקים
-    console.log('מייבא משחקים...')
-    await prisma.match.createMany({
-      data: matches.map(match => ({
-        id: match.id,
-        player1Id: match.player1Id,
-        player2Id: match.player2Id,
-        tournamentId: match.tournamentId,
-        player1Score: match.player1Score,
-        player2Score: match.player2Score,
-        scheduledDate: match.scheduledDate ? new Date(match.scheduledDate) : null,
-        status: match.status,
-        round: match.round || null,
-        createdAt: new Date(match.createdAt),
-        updatedAt: new Date(match.updatedAt)
-      }))
-    })
-    
-    // יבוא התראות
-    console.log('מייבא התראות...')
-    await prisma.notification.createMany({
-      data: notifications.map(notification => ({
-        id: notification.id,
-        title: notification.title,
-        message: notification.message,
-        read: notification.read,
-        userId: notification.userId || null,
-        createdAt: new Date(notification.createdAt),
-        updatedAt: new Date(notification.updatedAt),
-        type: notification.type || "GENERAL"
-      }))
-    })
+    for (const player of players) {
+      await prisma.player.create({
+        data: {
+          id: player.id,
+          name: player.name,
+          email: player.email || null,
+          phone: player.phone || null,
+          avatarUrl: player.avatar || null, // המרה מ-avatar לשדה avatarUrl
+          bio: player.bio || null,
+          status: "ACTIVE", // קבוע עבור ה-PostgreSQL
+          createdAt: new Date(player.createdAt),
+          updatedAt: new Date(player.updatedAt)
+        }
+      })
+    }
     
     // יבוא הקשרים בין שחקנים לטורנירים
     console.log('מייבא קשרים בין שחקנים לטורנירים...')
     for (const relation of playerTournamentRelations) {
-      await prisma.$executeRaw`
-        INSERT INTO "_PlayerToTournament" ("A", "B") 
-        VALUES (${relation.A}, ${relation.B})
-      `
+      await prisma.player.update({
+        where: { id: relation.A },
+        data: {
+          tournaments: {
+            connect: { id: relation.B }
+          }
+        }
+      })
+    }
+    
+    // יבוא משחקים
+    console.log('מייבא משחקים...')
+    for (const match of matches) {
+      await prisma.match.create({
+        data: {
+          id: match.id,
+          player1Id: match.player1Id,
+          player2Id: match.player2Id,
+          tournamentId: match.tournamentId,
+          player1Score: match.player1Score || 0,
+          player2Score: match.player2Score || 0,
+          scheduledDate: match.date ? new Date(match.date) : null, // המרה מ-date לשדה scheduledDate
+          status: match.status === 'scheduled' ? 'SCHEDULED' : 
+                  match.status === 'in_progress' ? 'IN_PROGRESS' : 
+                  match.status === 'completed' ? 'COMPLETED' : 'SCHEDULED',
+          round: match.round || null,
+          createdAt: new Date(match.createdAt),
+          updatedAt: new Date(match.updatedAt)
+        }
+      })
+    }
+    
+    // יבוא התראות
+    console.log('מייבא התראות...')
+    for (const notification of notifications) {
+      await prisma.notification.create({
+        data: {
+          id: notification.id,
+          title: notification.title,
+          message: notification.message,
+          read: notification.read,
+          type: notification.type || "GENERAL",
+          createdAt: new Date(notification.createdAt),
+          updatedAt: new Date(notification.updatedAt)
+        }
+      })
     }
     
     console.log('הייבוא הושלם בהצלחה!')
