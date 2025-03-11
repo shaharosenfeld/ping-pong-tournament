@@ -130,7 +130,7 @@ async function main() {
           groupName: match.groupName || null,
           status: match.status || 'scheduled',
           date: match.date ? new Date(match.date) : null,
-          bestOfThree: match.bestOfThree || false,
+          bestOfThree: Boolean(match.bestOfThree),
           createdAt: new Date(match.createdAt),
           updatedAt: new Date(match.updatedAt)
         }
