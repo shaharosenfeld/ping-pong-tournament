@@ -475,7 +475,7 @@ export default function HomePage() {
                     alt="PaddleBot Logo"
                     width={75}
                     height={75}
-                    className="object-contain drop-shadow-md"
+                    className="object-contain drop-shadow-md rounded-xl"
                     priority
                   />
                 </div>
