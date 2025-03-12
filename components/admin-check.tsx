@@ -13,10 +13,9 @@ export default function AdminCheck({ children }: { children: React.ReactNode }) 
   const router = useRouter()
   const { isAdmin, adminToken, refreshAuthState } = useAuth() // משתמשים ב-hook האימות לבדיקת הרשאות
   const [accessState, setAccessState] = useState<'loading' | 'allowed' | 'denied'>('loading')
+  const [redirectCount, setRedirectCount] = useState(0)
   
-  // פונקציה זו תבצע רענון של מצב האימות מה-localStorage
-  // היא תתבצע בכל פעם שהרכיב הזה נטען, רגע לפני הבדיקה
-  // זה יעזור במקרים בהם המצב הסטייטי של הוק האימות לא מסונכרן עם ה-localStorage
+  // רענון מצב האימות מה-localStorage בעת טעינת הרכיב
   useEffect(() => {
     if (typeof refreshAuthState === 'function') {
       console.log("AdminCheck: מרענן מצב אימות")
@@ -30,6 +29,8 @@ export default function AdminCheck({ children }: { children: React.ReactNode }) 
         if (typeof window === 'undefined') return // אם אנחנו ב-SSR, חזור
         
         console.log("AdminCheck: בודק הרשאות מנהל")
+        console.log("AdminCheck: localStorage.isAdmin =", localStorage.getItem('isAdmin'))
+        console.log("AdminCheck: localStorage.adminToken =", localStorage.getItem('adminToken') ? "קיים" : "לא קיים")
         
         // גם בדיקה מהוק וגם בדיקה ישירה מה-localStorage
         const isAdminFromStorage = localStorage.getItem('isAdmin') === 'true'
@@ -37,8 +38,7 @@ export default function AdminCheck({ children }: { children: React.ReactNode }) 
         
         console.log(`AdminCheck: isAdmin=${isAdmin}, isAdminFromStorage=${isAdminFromStorage}, hasToken=${hasToken}`)
         
-        // שיפור הבדיקה - מספיק אחד מהתנאים, אבל צריך שיהיה גם טוקן
-        // בנוסף, נוסיף רענון של האימות אם מזהים אי התאמה
+        // מספיק אחד מהתנאים, אבל צריך שיהיה גם טוקן
         if ((isAdmin || isAdminFromStorage) && hasToken) {
           console.log("AdminCheck: גישת מנהל אושרה")
           
@@ -51,10 +51,16 @@ export default function AdminCheck({ children }: { children: React.ReactNode }) 
           
           setAccessState('allowed')
         } else {
-          console.log("AdminCheck: אין הרשאות מנהל")
+          console.log("AdminCheck: אין הרשאות מנהל מספקות")
+          
+          // בדוק אם זהו ניסיון הפניה חוזר - למניעת לולאות אינסופיות
+          if (redirectCount > 0) {
+            console.log("AdminCheck: זוהתה הפניה חוזרת, מציג הודעת שגיאה במקום")
+            setAccessState('denied')
+            return
+          }
           
           // הפעם, אנחנו לא נמחק את ה-localStorage באגרסיביות אלא רק אם יש בעיה ברורה
-          // אם אין סתירה פנימית בין ה-isAdmin ל-hasToken אז אין צורך למחוק
           if ((isAdmin && !hasToken) || (!isAdmin && !isAdminFromStorage && hasToken)) {
             console.log("AdminCheck: יש סתירה באימות - מנקה נתונים")
             localStorage.removeItem('isAdmin')
@@ -70,12 +76,11 @@ export default function AdminCheck({ children }: { children: React.ReactNode }) 
     }
     
     // הגדלת זמן השהייה כדי לתת לכל המערכת זמן לטעון נתונים מה-localStorage
-    const timer = setTimeout(checkAdmin, 500)
+    const timer = setTimeout(checkAdmin, 1000)
     return () => clearTimeout(timer)
-  }, [isAdmin, refreshAuthState, router])
+  }, [isAdmin, refreshAuthState, redirectCount])
   
-  // בזמן הטעינה, מציגים אנימציית טעינה אבל רק לזמן קצר יחסית
-  // המטרה - למנוע הבהובים וניתורים בהכנסה ללוח הבקרה
+  // מניעת ניווט אוטומטי וביטול הפניה בזמן טעינה
   if (accessState === 'loading') {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-blue-50 to-white">
@@ -85,17 +90,19 @@ export default function AdminCheck({ children }: { children: React.ReactNode }) 
     )
   }
   
-  // במקרה של בעיית הרשאה, ננסה גם להפנות למסך ההתחברות עם פרמטר החזרה
+  // במקרה של בעיית הרשאה
   if (accessState === 'denied') {
-    if (typeof window !== 'undefined') {
-      // הוספת תסריט התחברות שמשתמש ב-window.location במקום router
-      // זה יגרום לרענון מלא של הדף, אבל עם cookie וזהות חדשים
-      const loginScript = setTimeout(() => {
-        console.log("AdminCheck: מפנה לדף התחברות עם returnTo", pathname)
-        window.location.href = `/login?returnTo=${encodeURIComponent(pathname)}`
-      }, 300)
+    if (redirectCount === 0 && typeof window !== 'undefined') {
+      // ניסיון ראשון להפניה
+      setRedirectCount(prev => prev + 1)
+      console.log("AdminCheck: מפנה לדף התחברות עם returnTo", pathname)
       
-      // מחזירים רכיב ביניים בזמן ההפניה
+      // הוספת עיכוב להפניה כדי למנוע בעיות
+      setTimeout(() => {
+        window.location.href = `/login?returnTo=${encodeURIComponent(pathname)}`
+      }, 800)
+      
+      // בינתיים מציג הודעת טעינה
       return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-blue-50 to-white">
           <Loader2 className="h-8 w-8 text-blue-500 animate-spin mb-2" />
@@ -104,7 +111,7 @@ export default function AdminCheck({ children }: { children: React.ReactNode }) 
       )
     }
     
-    // אם מסיבה כלשהי הקוד לעיל לא מתבצע, מציגים גם את טופס ההפניה הרגיל
+    // מציג הודעת שגיאה אם ההפניה כבר נעשתה או נכשלה
     return (
       <div
         dir="rtl"

@@ -118,6 +118,14 @@ export default function HomePage() {
           
           const latest = sortedTournaments[0]
           
+          console.log("הטורניר האחרון:", latest)
+          console.log("פרטי פרסים:", {
+            price: latest.price,
+            firstPlacePrize: latest.firstPlacePrize,
+            secondPlacePrize: latest.secondPlacePrize,
+            registrationOpen: latest.registrationOpen
+          })
+          
           setLatestTournament({
             id: latest.id,
             name: latest.name,

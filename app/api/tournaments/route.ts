@@ -120,6 +120,20 @@ export async function GET() {
         }
       }
     })
+    
+    console.log('GET /api/tournaments: Retrieved tournaments with registration details');
+    if (tournaments.length > 0) {
+      const firstTournament = tournaments[0];
+      console.log('Example tournament fields:', {
+        id: firstTournament.id,
+        name: firstTournament.name,
+        price: firstTournament.price,
+        firstPlacePrize: firstTournament.firstPlacePrize,
+        secondPlacePrize: firstTournament.secondPlacePrize,
+        registrationOpen: firstTournament.registrationOpen
+      });
+    }
+    
     return NextResponse.json({ tournaments })
   } catch (error) {
     console.error('Error fetching tournaments:', error)
