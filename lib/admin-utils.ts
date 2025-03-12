@@ -31,15 +31,34 @@ export function getAuthHeaders(): Headers {
   
   // הוסף כותרת אוטוריזציה רק אם יש טוקן תקף
   if (typeof window !== 'undefined') {
-    const adminToken = localStorage.getItem('adminToken');
-    console.log('getAuthHeaders: adminToken from localStorage:', adminToken);
-    
-    if (adminToken) {
-      const authHeader = `Bearer ${adminToken}`;
-      console.log('getAuthHeaders: setting Authorization header:', authHeader);
-      headers.append('Authorization', authHeader);
-    } else {
-      console.log('getAuthHeaders: No admin token found in localStorage');
+    try {
+      console.log('getAuthHeaders: בדיקת localStorage וטוקנים');
+      
+      // נסה לקבל את הטוקן ישירות מ-localStorage
+      const adminToken = localStorage.getItem('adminToken');
+      console.log('getAuthHeaders: adminToken from localStorage:', adminToken);
+      
+      // בדוק את כל הערכים ב-localStorage לאבחון
+      console.log('getAuthHeaders: All localStorage values:');
+      for(let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key) {
+          console.log(`  ${key}: ${localStorage.getItem(key)}`);
+        }
+      }
+      
+      if (adminToken) {
+        const authHeader = `Bearer ${adminToken}`;
+        console.log('getAuthHeaders: setting Authorization header:', authHeader);
+        headers.append('Authorization', authHeader);
+        
+        // הוסף כותרת מותאמת אישית כדי לעקוף מגבלות CORS אפשריות
+        headers.append('X-Admin-Token', adminToken);
+      } else {
+        console.log('getAuthHeaders: No admin token found in localStorage');
+      }
+    } catch (error) {
+      console.error('getAuthHeaders: Error accessing localStorage:', error);
     }
   } else {
     console.log('getAuthHeaders: Not in browser environment');

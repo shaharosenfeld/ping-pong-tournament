@@ -65,16 +65,38 @@ export default function LoginPage() {
       }
       
       // ניסיון התחברות
-      const success = await login(password)
+      console.log('Login: נשלחת בקשת התחברות עם סיסמה');
+      const response = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ password })
+      });
       
-      if (success) {
-        localStorage.setItem("loginAttempts", "0") // איפוס הספירה בהצלחה
+      const data = await response.json();
+      console.log('Login: התקבלה תגובה מהשרת:', data);
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'שגיאה לא ידועה בהתחברות');
+      }
+      
+      if (data.success) {
+        console.log("Login: התחברות הצליחה, נשמר טוקן:", data.token);
+        
+        // נקה את כל ערכי האימות הישנים לפני הוספת החדשים
+        localStorage.removeItem('isAdmin');
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('isAuthenticated');
+        
+        // הוסף את ערכי האימות החדשים
+        localStorage.setItem('isAdmin', 'true');
+        localStorage.setItem('adminToken', data.token);
         
         // וידוא שה-localStorage מכיל את המידע הנכון
-        localStorage.setItem('isAdmin', 'true')
-        
-        // לוג לבדיקת הטוקן
-        console.log('Login successful. Admin token in localStorage:', localStorage.getItem('adminToken'));
+        console.log('Login: ערכי localStorage לאחר התחברות:');
+        console.log('  isAdmin:', localStorage.getItem('isAdmin'));
+        console.log('  adminToken:', localStorage.getItem('adminToken'));
         
         toast({
           title: "התחברת בהצלחה",
@@ -86,15 +108,15 @@ export default function LoginPage() {
           // הפניה לדף החזרה או דף ברירת המחדל
           const returnTo = searchParams.get('returnTo')
           if (returnTo) {
-            router.push(returnTo)
+            window.location.href = returnTo; // השתמש ב-window.location במקום router לטעינה מחדש
           } else {
-            router.push('/admin')
+            window.location.href = '/admin'; // השתמש ב-window.location במקום router לטעינה מחדש
           }
           
           // רק אחרי שההפניה בוצעה, מסירים את מצב הטעינה
           setIsLoading(false)
           setIsAuthenticating(false)
-        }, 500)
+        }, 1000)
       } else {
         // עדכון ספירת ניסיונות הכניסה
         const newAttempts = loginAttempts + 1
