@@ -73,6 +73,9 @@ export default function LoginPage() {
         // וידוא שה-localStorage מכיל את המידע הנכון
         localStorage.setItem('isAdmin', 'true')
         
+        // לוג לבדיקת הטוקן
+        console.log('Login successful. Admin token in localStorage:', localStorage.getItem('adminToken'));
+        
         toast({
           title: "התחברת בהצלחה",
           description: "ברוכים הבאים למערכת ניהול טורניר הפינג פונג!",

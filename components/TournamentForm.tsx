@@ -266,12 +266,41 @@ export function TournamentForm({
         return
       }
       
+      // בדיקת אימות לפני שליחת הנתונים
+      const authToken = localStorage.getItem('adminToken');
+      console.log("TournamentForm: בודק טוקן לפני שליחה:", authToken);
+      
+      if (!authToken) {
+        console.log("TournamentForm: טוקן חסר, מנתק ומנווט לדף התחברות");
+        toast({
+          title: "שגיאה באימות",
+          description: "נא להתחבר מחדש כדי לבצע פעולה זו",
+          variant: "destructive",
+        });
+        
+        // נקה את אחסון המצב
+        try {
+          localStorage.removeItem('isAdmin');
+          localStorage.removeItem('adminToken');
+          localStorage.removeItem('isAuthenticated');
+        } catch (e) {
+          console.error("Error clearing localStorage:", e);
+        }
+        
+        // עיכוב קצר לפני ניווט
+        setTimeout(() => {
+          window.location.href = '/login?returnTo=' + encodeURIComponent(window.location.pathname);
+        }, 1500);
+        
+        setIsSubmitting(false);
+        return;
+      }
+      
       let apiData
       
       console.log("TournamentForm: מגיש נתונים", { mode, formData })
       
       // Debug auth
-      const authToken = localStorage.getItem('adminToken');
       console.log("TournamentForm: טוקן אימות", authToken);
       
       if (mode === 'edit') {

@@ -32,9 +32,17 @@ export function getAuthHeaders(): Headers {
   // הוסף כותרת אוטוריזציה רק אם יש טוקן תקף
   if (typeof window !== 'undefined') {
     const adminToken = localStorage.getItem('adminToken');
+    console.log('getAuthHeaders: adminToken from localStorage:', adminToken);
+    
     if (adminToken) {
-      headers.append('Authorization', `Bearer ${adminToken}`);
+      const authHeader = `Bearer ${adminToken}`;
+      console.log('getAuthHeaders: setting Authorization header:', authHeader);
+      headers.append('Authorization', authHeader);
+    } else {
+      console.log('getAuthHeaders: No admin token found in localStorage');
     }
+  } else {
+    console.log('getAuthHeaders: Not in browser environment');
   }
   
   return headers;
@@ -47,13 +55,28 @@ export function getAuthHeaders(): Headers {
  * @returns {boolean} האם הטוקן תקף
  */
 export function validateServerAdminToken(authHeader: string | null): boolean {
-  if (!authHeader) return false;
+  console.log('validateServerAdminToken called with:', authHeader);
+  
+  if (!authHeader) {
+    console.log('No auth header provided');
+    return false;
+  }
   
   // הסר את הקידומת "Bearer " אם קיימת
   const token = authHeader.startsWith('Bearer ') ? 
     authHeader.replace('Bearer ', '') : 
     authHeader;
   
-  // בדוק שהטוקן מתחיל ב-"admin-"
-  return !!token && token.startsWith('admin-');
+  console.log('Token after Bearer prefix removal:', token);
+  
+  // בדיקה אם הטוקן תקף
+  // 1. בדוק אם הטוקן מתחיל ב-admin-
+  // 2. אם לא, בדוק אם זה UUID תקף (לטיפול בטוקנים שנוצרו לפני התיקון)
+  const isAdminToken = token.startsWith('admin-');
+  const looksLikeValidUUID = token.length > 30 && token.includes('-'); // בדיקה פשוטה לנראות UUID
+  
+  const isValid = isAdminToken || looksLikeValidUUID;
+  console.log(`Is token valid? ${isValid} (adminToken=${isAdminToken}, uuidLike=${looksLikeValidUUID})`);
+  
+  return isValid;
 } 
