@@ -43,6 +43,9 @@ interface TournamentFormProps {
     location?: string
     groupCount?: string
     advanceCount?: string
+    price?: string
+    registrationOpen?: boolean
+    registrationDeadline?: string
   }
   onSuccess?: () => void
 }
@@ -96,7 +99,10 @@ export function TournamentForm({
     status: initialData?.status || "draft",
     location: initialData?.location || "",
     groupCount: initialData?.groupCount || "2",
-    advanceCount: initialData?.advanceCount || "2"
+    advanceCount: initialData?.advanceCount || "2",
+    price: initialData?.price || "",
+    registrationOpen: initialData?.registrationOpen || false,
+    registrationDeadline: initialData?.registrationDeadline || ""
   })
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>(initialData?.players || [])
   const [playerGroups, setPlayerGroups] = useState<Record<string, Player[]>>({})
@@ -496,46 +502,92 @@ export function TournamentForm({
               </div>
             </div>
 
+            <div className="flex flex-col space-y-1.5">
+              <Label htmlFor="price" className="text-blue-700">מחיר השתתפות (ש״ח)</Label>
+              <Input
+                id="price"
+                name="price"
+                type="number"
+                min="0"
+                step="1"
+                value={formData.price}
+                onChange={handleChange}
+                placeholder="הזן את מחיר ההשתתפות בטורניר"
+                className="border-blue-200 focus:border-blue-400"
+              />
+            </div>
+
+            <div className="flex items-center space-x-4 space-x-reverse">
+              <Checkbox 
+                id="registrationOpen" 
+                checked={Boolean(formData.registrationOpen)}
+                onCheckedChange={(checked) => {
+                  setFormData({
+                    ...formData,
+                    registrationOpen: checked === true
+                  });
+                }}
+              />
+              <Label htmlFor="registrationOpen" className="text-blue-700">
+                פתח להרשמה
+              </Label>
+            </div>
+
+            <div className="flex flex-col space-y-1.5">
+              <Label htmlFor="registrationDeadline" className="text-blue-700">תאריך סיום הרשמה</Label>
+              <div className="relative">
+                <Calendar className="absolute left-2.5 top-2.5 h-4 w-4 text-blue-500" />
+                <Input
+                  id="registrationDeadline"
+                  name="registrationDeadline"
+                  type="date"
+                  value={formData.registrationDeadline}
+                  onChange={handleChange}
+                  className="pl-8 border-blue-200 focus:border-blue-400"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>סוג הטורניר</Label>
+              <RadioGroup 
+                value={formData.format}
+                onValueChange={(value) => handleSelectChange('format', value)}
+                className="grid grid-cols-2 gap-4"
+              >
+                <div>
+                  <RadioGroupItem
+                    value="league"
+                    id="league"
+                    className="peer sr-only"
+                  />
+                  <Label
+                    htmlFor="league"
+                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                  >
+                    <Trophy className="mb-3 h-6 w-6" />
+                    <span>ליגה</span>
+                  </Label>
+                </div>
+                <div>
+                  <RadioGroupItem
+                    value="groups_knockout"
+                    id="groups_knockout"
+                    className="peer sr-only"
+                  />
+                  <Label
+                    htmlFor="groups_knockout"
+                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                  >
+                    <Trophy className="mb-3 h-6 w-6" />
+                    <span>בתים + נוק-אאוט</span>
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+
             {mode === 'create' && (
               <>
-                <div className="space-y-2">
-                  <Label>סוג הטורניר</Label>
-                  <RadioGroup 
-                    value={formData.format}
-                    onValueChange={(value) => handleSelectChange('format', value)}
-                    className="grid grid-cols-2 gap-4"
-                  >
-                    <div>
-                      <RadioGroupItem
-                        value="league"
-                        id="league"
-                        className="peer sr-only"
-                      />
-                      <Label
-                        htmlFor="league"
-                        className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                      >
-                        <Trophy className="mb-3 h-6 w-6" />
-                        <span>ליגה</span>
-                      </Label>
-                    </div>
-                    <div>
-                      <RadioGroupItem
-                        value="groups_knockout"
-                        id="groups_knockout"
-                        className="peer sr-only"
-                      />
-                      <Label
-                        htmlFor="groups_knockout"
-                        className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                      >
-                        <Trophy className="mb-3 h-6 w-6" />
-                        <span>בתים + נוק-אאוט</span>
-                      </Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-
                 <div className="space-y-2">
                   <Label className="text-blue-700">אופן הגרלת המשחקים</Label>
                   <RadioGroup

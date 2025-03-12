@@ -49,6 +49,9 @@ interface Tournament {
   startDate: string
   completedMatches: number
   totalMatches: number
+  price: number | null
+  registrationOpen: boolean
+  registrationDeadline: string | null
 }
 
 export default function TournamentsPage() {
@@ -247,9 +250,12 @@ export default function TournamentsPage() {
                     <div className="flex justify-between items-start">
                       <div>
                         <CardTitle>{tournament.name}</CardTitle>
-                        <CardDescription>
-                          {getFormatLabel(tournament.format)} | {tournament.rounds} סיבובים | {tournament.players.length} שחקנים
-                        </CardDescription>
+                        <div>
+                          <CardDescription>
+                            {getFormatLabel(tournament.format)} | {tournament.rounds} סיבובים | {tournament.players.length} שחקנים
+                            {tournament.price && ` | ${tournament.price} ₪`}
+                          </CardDescription>
+                        </div>
                       </div>
                       <div className="flex gap-2">
                         <Badge variant="outline">
@@ -258,6 +264,11 @@ export default function TournamentsPage() {
                         <Badge variant={getStatusVariant(tournament.status)}>
                           {getStatusLabel(tournament.status)}
                         </Badge>
+                        {tournament.registrationOpen && (
+                          <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-200">
+                            הרשמה פתוחה
+                          </Badge>
+                        )}
                         <div className="flex gap-1 ml-2">
                           <Button
                             variant="outline"

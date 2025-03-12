@@ -36,8 +36,12 @@ model Tournament {
   groupCount   Int?     // Number of groups for groups_knockout format
   advanceCount Int?     // Number of players advancing from each group
   location     String?
+  price        Float?   // מחיר השתתפות בטורניר
+  registrationOpen Boolean @default(false) // האם ההרשמה פתוחה
+  registrationDeadline DateTime? // תאריך אחרון להרשמה
   players      Player[]
   matches      Match[]
+  registrations TournamentRegistration[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
@@ -57,6 +61,7 @@ model Player {
   tournaments  Tournament[]
   matchesAsP1  Match[]      @relation("Player1")
   matchesAsP2  Match[]      @relation("Player2")
+  registrations TournamentRegistration[]
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 }
@@ -98,5 +103,23 @@ model Notification {
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model TournamentRegistration {
+  id           String    @id @default(uuid())
+  tournament   Tournament @relation(fields: [tournamentId], references: [id])
+  tournamentId String
+  player       Player    @relation(fields: [playerId], references: [id])
+  playerId     String
+  userEmail    String    // Email of user who registered
+  userName     String    // Name of user who registered
+  paymentStatus String   @default("pending") // pending, completed, failed, refunded
+  paymentAmount Float
+  paymentDate  DateTime?
+  paymentId    String?   // External payment identifier
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([tournamentId, playerId])
 }
 
