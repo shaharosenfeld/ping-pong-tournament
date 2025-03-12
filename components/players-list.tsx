@@ -2,12 +2,14 @@
 
 import React, { useState } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Card } from "@/components/ui/card"
-import { Trophy, Star, TrendingUp, Medal, Award, Zap } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
+import { Trophy, Star, TrendingUp, Medal, Award, Zap, Eye, Pencil, Trash } from "lucide-react"
 import { cn, getWinRate, getLevelStarClass, getImageUrl } from "@/lib/utils"
 import { AdminEditButton } from "./admin-edit-button"
 import { motion } from "framer-motion"
 import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 
 interface Player {
   id: string
@@ -54,8 +56,41 @@ export const PlayersList = ({ players, tournament, isAdmin }: {
     return b.wins - a.wins;
   });
 
+  const handleViewPlayer = (playerId: string) => {
+    window.location.href = `/players/${playerId}`;
+  };
+
+  const handleEditPlayer = (playerId: string) => {
+    window.location.href = `/players/${playerId}/edit`;
+  };
+
+  const handleDeletePlayer = (playerId: string) => {
+    if (confirm('האם אתה בטוח שברצונך למחוק שחקן זה?')) {
+      // Call delete API
+      fetch(`/api/players/${playerId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      })
+      .then(response => {
+        if (!response.ok) throw new Error('שגיאה במחיקת השחקן');
+        return response.json();
+      })
+      .then(() => {
+        // Refresh the page after successful deletion
+        window.location.reload();
+      })
+      .catch(error => {
+        console.error('Error deleting player:', error);
+        alert('אירעה שגיאה במחיקת השחקן');
+      });
+    }
+  };
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {sortedPlayers.map((player, index) => {
         const playerColor = getRandomColor(player.name);
         const winRate = getWinRate(player.wins, player.losses);
@@ -65,127 +100,111 @@ export const PlayersList = ({ players, tournament, isAdmin }: {
             key={player.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: index * 0.1 }}
+            transition={{ duration: 0.3, delay: index * 0.05 }}
           >
-            <Link href={`/players/${player.id}`} className="block">
-              <Card
-                className={cn(
-                  "p-5 transition-all hover:shadow-lg overflow-hidden relative cursor-pointer transform hover:scale-105 transition-transform duration-300",
-                  player.level >= 4 && "bg-gradient-to-br from-amber-50/50 to-transparent dark:from-amber-950/50"
-                )}
-              >
-                {player.level === 5 && (
-                  <div className="absolute -top-6 -right-6 w-12 h-12 bg-yellow-500/20 rounded-full blur-xl"></div>
-                )}
-                
-                <div className="flex flex-col items-center text-center gap-3">
-                  <div className="relative">
-                    <Avatar className={cn(
-                      "h-24 w-24 border-4 transition-all duration-300 shadow-md",
-                      player.level >= 4 ? "border-yellow-400" : 
-                      player.level >= 3 ? "border-blue-400" : 
-                      "border-gray-200"
-                    )}>
+            <Card className="overflow-hidden hover:shadow-md transition-all">
+              <CardContent className="p-0">
+                <div className="relative">
+                  {/* Player Level Indicator on top of card */}
+                  {player.level > 0 && (
+                    <div className="absolute top-0 left-0 p-2">
+                      <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200">
+                        <Star className="h-3 w-3 mr-1 fill-current" />
+                        רמה {player.level}
+                      </Badge>
+                    </div>
+                  )}
+                  
+                  {/* Admin actions at the top right */}
+                  {isAdmin && (
+                    <div className="absolute top-0 right-0 p-2 flex gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 w-8 p-0 bg-white/80"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleEditPlayer(player.id);
+                        }}
+                      >
+                        <Pencil className="h-4 w-4" />
+                        <span className="sr-only">ערוך</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 w-8 p-0 bg-white/80 text-destructive"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleDeletePlayer(player.id);
+                        }}
+                      >
+                        <Trash className="h-4 w-4" />
+                        <span className="sr-only">מחק</span>
+                      </Button>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col items-center p-4 pt-8">
+                    <Avatar className="h-20 w-20 mb-3 border-2 border-blue-100">
                       {player.avatar ? (
-                        <div className="h-full w-full overflow-hidden rounded-full">
-                          <img 
-                            src={getImageUrl(player.avatar)} 
-                            alt={player.name} 
-                            className="h-full w-full object-cover rounded-full"
-                            onError={(e) => {
-                              console.log('Error loading player image in players list');
-                              // First attempt with cache busting
-                              const target = e.target as HTMLImageElement;
-                              const originalSrc = target.src;
-                              const newSrc = `${originalSrc}?t=${new Date().getTime()}`;
-                              console.log('Trying with cache busting:', newSrc);
-                              target.src = newSrc;
-                              
-                              // On second failure, use placeholder
-                              target.onerror = () => {
-                                console.log('Second attempt failed, using placeholder');
-                                target.src = '/placeholder-user.jpg';
-                                target.onerror = null; // Prevent infinite loop
-                              };
-                            }}
-                          />
-                        </div>
+                        <AvatarImage 
+                          src={getImageUrl(player.avatar)} 
+                          alt={player.name} 
+                          className="object-cover"
+                        />
                       ) : (
-                        <AvatarFallback className={cn("text-xl font-bold text-white rounded-full", playerColor)}>
-                          {typeof player.initials === 'string' ? player.initials : ''}
+                        <AvatarFallback className={cn("text-white", playerColor)}>
+                          {player.initials || player.name.charAt(0)}
                         </AvatarFallback>
                       )}
                     </Avatar>
                     
-                    {/* תג רמה */}
-                    <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-md border-2 border-white">
-                      {player.level}
+                    <h3 className="font-semibold text-xl mb-1">{player.name}</h3>
+                    
+                    {/* Win rate and stats */}
+                    <div className="flex items-center gap-2 mb-3">
+                      <Badge variant="outline" className="bg-green-50 text-green-700">
+                        {player.wins} ניצחונות
+                      </Badge>
+                      <Badge variant="outline" className="bg-red-50 text-red-700">
+                        {player.losses} הפסדים
+                      </Badge>
                     </div>
                     
-                    {/* מדליה לשחקן מוביל */}
-                    {index === 0 && (
-                      <div className="absolute -top-2 -left-2">
-                        <Medal className="h-8 w-8 text-yellow-500 drop-shadow-md" fill="#FFC107" />
+                    <div className="grid grid-cols-2 gap-3 w-full mt-2">
+                      <div className="flex flex-col items-center p-2 bg-blue-50 rounded-lg">
+                        <span className="text-xs text-blue-700 mb-1">דירוג</span>
+                        <span className="text-lg font-bold text-blue-800">{player.level * 100 + winRate}</span>
                       </div>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-2 w-full">
-                    <h3 className="font-bold text-lg">{player.name}</h3>
-                    
-                    <div className="flex items-center justify-center gap-1">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Star
-                          key={i}
-                          className={cn(
-                            "h-5 w-5 transition-all",
-                            getLevelStarClass(i, player.level)
-                          )}
-                          fill={i < player.level ? "currentColor" : "none"}
-                        />
-                      ))}
-                    </div>
-                    
-                    <div className="flex justify-between items-center mt-4 px-2">
-                      <div className="flex flex-col items-center bg-green-50 p-2 rounded-lg w-[45%]">
-                        <Trophy className="h-4 w-4 text-green-600 mb-1" />
-                        <span className="text-lg font-bold text-green-700">{player.wins}</span>
-                        <span className="text-xs text-green-600">ניצחונות</span>
-                      </div>
-                      
-                      <div className="flex flex-col items-center bg-red-50 p-2 rounded-lg w-[45%]">
-                        <TrendingUp className="h-4 w-4 text-red-600 mb-1" />
-                        <span className="text-lg font-bold text-red-700">{player.losses}</span>
-                        <span className="text-xs text-red-600">הפסדים</span>
+                      <div className="flex flex-col items-center p-2 bg-purple-50 rounded-lg">
+                        <span className="text-xs text-purple-700 mb-1">יחס נצחונות</span>
+                        <span className="text-lg font-bold text-purple-800">{winRate}%</span>
                       </div>
                     </div>
                     
-                    <div className="mt-3 pt-3 border-t">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-500">אחוז ניצחונות</span>
-                        <span className="font-bold text-blue-600">{winRate}%</span>
-                      </div>
-                      <div className="mt-1 h-2 w-full bg-gray-200 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-blue-500 rounded-full"
-                          style={{ width: `${winRate}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                    
-                    {isAdmin && (
-                      <div className="mt-3 pt-2 flex justify-center">
-                        <AdminEditButton entityId={player.id} entityType="player" small />
-                      </div>
-                    )}
+                    <Link 
+                      href={`/players/${player.id}`}
+                      className="w-full mt-4"
+                    >
+                      <Button 
+                        variant="default" 
+                        className="w-full"
+                      >
+                        צפה בפרופיל
+                        <Eye className="ml-2 h-4 w-4" />
+                      </Button>
+                    </Link>
                   </div>
                 </div>
-              </Card>
-            </Link>
+              </CardContent>
+            </Card>
           </motion.div>
         );
       })}
     </div>
-  )
+  );
 }
 

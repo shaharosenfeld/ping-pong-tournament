@@ -1,4 +1,4 @@
-// סקריפט מרכזי להעברת נתונים מ-SQLite ל-PostgreSQL
+// סקריפט להעברת נתונים מ-SQLite ל-PostgreSQL
 const { execSync } = require('child_process')
 const fs = require('fs')
 const path = require('path')
@@ -18,53 +18,98 @@ async function main() {
     process.exit(1)
   }
   
-  // גיבוי ה-DATABASE_URL המקורי
-  const originalDatabaseUrl = process.env.DATABASE_URL
-  
   try {
-    // שלב 1: זיהוי מיקום קובץ ה-SQLite המקומי
-    console.log('שלב 1: מחפש את קובץ ה-SQLite המקומי...')
+    // שלב 1: איתור ויצירת ספריית פלט זמנית לקליינט ה-SQLite
+    console.log('שלב 1: יוצר ספריית פלט זמנית לקליינט ה-SQLite...')
+    const sqliteClientDir = path.resolve(__dirname, './generated/sqlite-client')
     
-    const possibleDbPaths = [
-      'dev.db',
-      'prisma/dev.db',
-      '.prisma/dev.db',
-      'prisma/data.db',
-      '../dev.db'
-    ]
+    if (!fs.existsSync(path.resolve(__dirname, './generated'))) {
+      fs.mkdirSync(path.resolve(__dirname, './generated'))
+    }
     
-    let sqliteDbPath = null
-    for (const dbPath of possibleDbPaths) {
-      const fullPath = path.resolve(__dirname, dbPath)
-      if (fs.existsSync(fullPath)) {
-        sqliteDbPath = fullPath
-        break
+    if (!fs.existsSync(sqliteClientDir)) {
+      fs.mkdirSync(sqliteClientDir)
+    }
+    
+    // שלב 2: יצירת קליינט Prisma זמני ל-SQLite
+    console.log('שלב 2: יוצר קליינט Prisma זמני ל-SQLite...')
+    execSync('npx prisma generate --schema=./prisma/temp-sqlite-schema.prisma', { stdio: 'inherit' })
+    
+    // שלב 3: יצירת קובץ ייצוא זמני עבור SQLite
+    console.log('שלב 3: יוצר סקריפט ייצוא זמני עבור SQLite...')
+    
+    const tempExportFile = path.resolve(__dirname, './temp-export.js')
+    fs.writeFileSync(tempExportFile, `
+      // סקריפט ייצוא זמני מ-SQLite
+      const { PrismaClient } = require('./generated/sqlite-client')
+      const fs = require('fs')
+      const path = require('path')
+      
+      const prisma = new PrismaClient()
+      
+      async function main() {
+        try {
+          console.log('מייצא נתונים מ-SQLite...')
+          
+          // שליפת כל הנתונים
+          const users = await prisma.user.findMany()
+          console.log(\`נמצאו \${users.length} משתמשים\`)
+          
+          const players = await prisma.player.findMany()
+          console.log(\`נמצאו \${players.length} שחקנים\`)
+          
+          const tournaments = await prisma.tournament.findMany()
+          console.log(\`נמצאו \${tournaments.length} טורנירים\`)
+          
+          const matches = await prisma.match.findMany()
+          console.log(\`נמצאו \${matches.length} משחקים\`)
+          
+          const notifications = await prisma.notification.findMany()
+          console.log(\`נמצאו \${notifications.length} התראות\`)
+          
+          // שליפת הקשרים בין שחקנים לטורנירים
+          const playerTournamentRelations = await prisma.$queryRaw\`
+            SELECT * FROM "_PlayerToTournament"
+          \`
+          console.log(\`נמצאו \${playerTournamentRelations.length} קשרים בין שחקנים לטורנירים\`)
+          
+          // יצירת אובייקט עם כל הנתונים
+          const exportData = {
+            users,
+            players,
+            tournaments,
+            matches,
+            notifications,
+            playerTournamentRelations
+          }
+          
+          // כתיבה לקובץ JSON
+          const exportPath = path.join(__dirname, 'db-export.json')
+          fs.writeFileSync(exportPath, JSON.stringify(exportData, null, 2))
+          
+          console.log(\`הייצוא הושלם בהצלחה! הנתונים נשמרו ב: \${exportPath}\`)
+        } catch (error) {
+          console.error('שגיאה בייצוא הנתונים:', error)
+          process.exit(1)
+        } finally {
+          await prisma.$disconnect()
+        }
       }
-    }
+      
+      main()
+    `)
     
-    if (!sqliteDbPath) {
-      console.error('לא נמצא קובץ SQLite מקומי. אנא ודא שהקובץ dev.db קיים באחד מהנתיבים הבאים:')
-      possibleDbPaths.forEach(p => console.log(`- ${path.resolve(__dirname, p)}`))
-      process.exit(1)
-    }
+    // שלב 4: הרצת סקריפט הייצוא
+    console.log('שלב 4: מריץ את סקריפט הייצוא מ-SQLite...')
+    execSync('node ./prisma/temp-export.js', { stdio: 'inherit' })
     
-    console.log(`נמצא קובץ SQLite ב: ${sqliteDbPath}`)
-    
-    // שלב 2: עדכון ה-DATABASE_URL לשימוש ב-SQLite המקומי
-    console.log('שלב 2: מעדכן משתנה סביבה לייצוא נתונים מ-SQLite...')
-    process.env.DATABASE_URL = `file:${sqliteDbPath}`
-    
-    // שלב 3: ייצוא הנתונים מ-SQLite ל-JSON
-    console.log('שלב 3: מייצא נתונים מ-SQLite ל-JSON...')
-    execSync('node prisma/export-sqlite-to-json.js', { stdio: 'inherit' })
-    
-    // שלב 4: החזרת ה-DATABASE_URL המקורי (PostgreSQL)
-    console.log('שלב 4: מחזיר משתנה סביבה למסד PostgreSQL...')
-    process.env.DATABASE_URL = originalDatabaseUrl
-    
-    // שלב 5: ייבוא הנתונים מ-JSON ל-PostgreSQL
+    // שלב 5: ייבוא הנתונים ל-PostgreSQL
     console.log('שלב 5: מייבא נתונים ל-PostgreSQL...')
-    execSync('node prisma/import-json-to-postgres.js', { stdio: 'inherit' })
+    execSync('node ./prisma/import-json-to-postgres.js', { stdio: 'inherit' })
+    
+    // שלב 6: ניקוי קבצים זמניים
+    console.log('שלב 6: מנקה קבצים זמניים...')
+    fs.unlinkSync(tempExportFile)
     
     console.log('✅ תהליך העברת הנתונים הושלם בהצלחה!')
     console.log('הנתונים הועברו מה-SQLite המקומי ל-PostgreSQL בענן.')

@@ -23,6 +23,8 @@ import { AdminEditButton } from "./admin-edit-button"
 import { motion } from "framer-motion"
 import { getImageUrl } from "@/lib/utils"
 import { useAuth } from "@/app/hooks/use-auth"
+import { Table, TableHeader, TableBody, TableCell, TableHead, TableRow } from "@/components/ui/table"
+import { EyeIcon, PencilIcon, TrashIcon } from "lucide-react"
 
 interface Player {
   id: string
@@ -69,13 +71,13 @@ export const MatchesList = ({ matches }: { matches: Match[] }) => {
   const getMatchStatusColor = (status: Match["status"]) => {
     switch (status) {
       case "completed":
-        return "bg-green-500"
+        return "default" as const
       case "in_progress":
-        return "bg-blue-500"
+        return "secondary" as const
       case "cancelled":
-        return "bg-red-500"
+        return "destructive" as const
       default:
-        return "bg-gray-500"
+        return "outline" as const
     }
   }
 
@@ -119,231 +121,140 @@ export const MatchesList = ({ matches }: { matches: Match[] }) => {
 
   return (
     <div className="space-y-4">
-      {matches.map((match, index) => {
-        const isCompleted = match.status === "completed";
-        const player1Winner = isCompleted && match.score1 !== undefined && match.score2 !== undefined && match.score1 > match.score2;
-        const player2Winner = isCompleted && match.score1 !== undefined && match.score2 !== undefined && match.score2 > match.score1;
-        
-        return (
-          <motion.div
-            key={match.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: index * 0.05 }}
-          >
-            <Link href={`/matches/${match.id}`}>
-              <Card className="hover:shadow-md transition-all duration-300 overflow-hidden">
-                <div className={cn(
-                  "border-t-4",
-                  player1Winner ? "border-t-green-500" : 
-                  player2Winner ? "border-t-blue-500" : 
-                  "border-t-gray-300"
-                )}>
-                  <CardHeader className="pb-3 pt-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <Badge className={getMatchStatusColor(match.status)}>
-                          {getMatchStatusText(match.status)}
-                        </Badge>
-                        {match.round && (
-                          <Badge variant="outline" className="ml-2">
-                            {match.round}
-                          </Badge>
-                        )}
-                      </div>
-                      {isAdmin && (
-                        <AdminEditButton entityId={match.id} entityType="match" small />
-                      )}
-                    </div>
-                  </CardHeader>
-                  
-                  <CardContent className="pb-3">
-                    <div className="flex flex-col md:flex-row items-center md:justify-between gap-4">
-                      {/* שחקן 1 */}
-                      <div className={cn(
-                        "flex items-center gap-3", 
-                        getWinnerStyles(match, 1)
-                      )}>
-                        <div className="relative">
-                          <Avatar className={cn(
-                            "h-14 w-14 border-2 transition-all", 
-                            player1Winner ? "border-green-500 shadow-md" : "border-gray-200"
-                          )}>
-                            {match.player1.avatar ? (
-                              <div className="h-full w-full overflow-hidden rounded-full">
-                                <img 
-                                  src={getImageUrl(match.player1.avatar)} 
-                                  alt={match.player1.name} 
-                                  className="h-full w-full object-cover"
-                                  onError={(e) => {
-                                    console.log('Error loading player1 image in match list');
-                                    (e.target as HTMLImageElement).src = '/placeholder-user.jpg';
-                                  }}
-                                />
-                              </div>
-                            ) : (
-                              <AvatarFallback className={cn(
-                                "text-white font-semibold",
-                                getPlayerBgColor(match.player1.name)
-                              )}>
-                                {typeof match.player1.name === 'string' ? match.player1.name.slice(0, 2) : ''}
-                              </AvatarFallback>
-                            )}
-                          </Avatar>
-                          
-                          {match.player1.level > 0 && (
-                            <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border border-white shadow-sm">
-                              {match.player1.level}
-                            </div>
-                          )}
-                          
-                          {player1Winner && (
-                            <div className="absolute -top-1 -right-1 bg-green-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold border border-white shadow-sm">
-                              ✓
-                            </div>
-                          )}
-                        </div>
-                        
-                        <div className="flex flex-col">
-                          <span className={cn(
-                            "font-medium text-lg",
-                            player1Winner && "text-green-600 font-bold"
-                          )}>
-                            {match.player1.name}
-                          </span>
-                          {isCompleted && (
-                            <div className="flex items-center gap-1 mt-1">
-                              {Array.from({ length: 5 }).map((_, i) => (
-                                <Star
-                                  key={i}
-                                  className={cn(
-                                    "h-3 w-3",
-                                    i < match.player1.level 
-                                      ? "text-yellow-500 fill-yellow-500" 
-                                      : "text-gray-300"
-                                  )}
-                                />
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      
-                      {/* תוצאה */}
-                      <div className="flex flex-col items-center">
-                        <Swords className="text-gray-400 mb-1 h-5 w-5" />
-                        <div className={cn(
-                          "flex items-center gap-2 px-4 py-1.5 bg-gray-100 rounded-full font-bold text-lg",
-                          isCompleted && "bg-blue-50"
-                        )}>
-                          <span className={player1Winner ? "text-green-600" : ""}>
-                            {match.score1 ?? "-"}
-                          </span>
-                          <span className="text-gray-400 mx-1">:</span>
-                          <span className={player2Winner ? "text-green-600" : ""}>
-                            {match.score2 ?? "-"}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      {/* שחקן 2 */}
-                      <div className={cn(
-                        "flex items-center gap-3", 
-                        getWinnerStyles(match, 2)
-                      )}>
-                        <div className="relative">
-                          <Avatar className={cn(
-                            "h-14 w-14 border-2 transition-all", 
-                            player2Winner ? "border-green-500 shadow-md" : "border-gray-200"
-                          )}>
-                            {match.player2.avatar ? (
-                              <div className="h-full w-full overflow-hidden rounded-full">
-                                <img 
-                                  src={getImageUrl(match.player2.avatar)} 
-                                  alt={match.player2.name} 
-                                  className="h-full w-full object-cover"
-                                  onError={(e) => {
-                                    console.log('Error loading player2 image in match list');
-                                    (e.target as HTMLImageElement).src = '/placeholder-user.jpg';
-                                  }}
-                                />
-                              </div>
-                            ) : (
-                              <AvatarFallback className={cn(
-                                "text-white font-semibold",
-                                getPlayerBgColor(match.player2.name)
-                              )}>
-                                {typeof match.player2.name === 'string' ? match.player2.name.slice(0, 2) : ''}
-                              </AvatarFallback>
-                            )}
-                          </Avatar>
-                          
-                          {match.player2.level > 0 && (
-                            <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border border-white shadow-sm">
-                              {match.player2.level}
-                            </div>
-                          )}
-                          
-                          {player2Winner && (
-                            <div className="absolute -top-1 -right-1 bg-green-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold border border-white shadow-sm">
-                              ✓
-                            </div>
-                          )}
-                        </div>
-                        
-                        <div className="flex flex-col">
-                          <span className={cn(
-                            "font-medium text-lg",
-                            player2Winner && "text-green-600 font-bold"
-                          )}>
-                            {match.player2.name}
-                          </span>
-                          {isCompleted && (
-                            <div className="flex items-center gap-1 mt-1">
-                              {Array.from({ length: 5 }).map((_, i) => (
-                                <Star
-                                  key={i}
-                                  className={cn(
-                                    "h-3 w-3",
-                                    i < match.player2.level 
-                                      ? "text-yellow-500 fill-yellow-500" 
-                                      : "text-gray-300"
-                                  )}
-                                />
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex justify-between text-sm text-muted-foreground mt-4 pt-3 border-t">
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center">
-                          <Calendar className="w-4 h-4 mr-1" />
-                          {new Date(match.date).toLocaleDateString("he-IL")}
-                        </div>
-                        {match.time && (
-                          <div className="flex items-center">
-                            <ClockIcon className="w-4 h-4 mr-1" />
-                            {match.time}
-                          </div>
-                        )}
-                      </div>
-                      {match.location && (
-                        <div className="flex items-center">
-                          <MapPinIcon className="w-4 h-4 mr-1" />
-                          {match.location}
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </div>
-              </Card>
-            </Link>
-          </motion.div>
-        );
-      })}
+      <div className="w-full overflow-auto">
+        <Table className="mobile-table">
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[100px]" data-label="מזהה">מזהה</TableHead>
+              <TableHead data-label="שחקן 1">שחקן 1</TableHead>
+              <TableHead data-label="שחקן 2">שחקן 2</TableHead>
+              <TableHead className="text-center" data-label="תוצאה">תוצאה</TableHead>
+              <TableHead data-label="תאריך">תאריך</TableHead>
+              <TableHead data-label="סטטוס">סטטוס</TableHead>
+              <TableHead className="text-right" data-label="פעולות">פעולות</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {matches.map((match) => (
+              <TableRow 
+                key={match.id}
+                className="group hover:bg-muted/50"
+              >
+                <TableCell 
+                  className="font-medium text-xs md:text-sm" 
+                  data-label="מזהה"
+                >
+                  {match.id.substring(0, 8)}...
+                </TableCell>
+                <TableCell 
+                  className="font-medium text-sm flex items-center gap-2" 
+                  data-label="שחקן 1"
+                >
+                  <Avatar className="h-8 w-8 hidden md:inline-flex">
+                    {match.player1.avatar ? (
+                      <AvatarImage src={match.player1.avatar} alt={match.player1.name} />
+                    ) : (
+                      <AvatarFallback>{match.player1.name.charAt(0)}</AvatarFallback>
+                    )}
+                  </Avatar>
+                  <Link 
+                    href={`/players/${match.player1.id}`}
+                    className="hover:text-primary hover:underline truncate"
+                  >
+                    {match.player1.name}
+                  </Link>
+                  {match.round && (
+                    <Badge variant="outline" className="ml-2 hidden md:inline-flex">
+                      {match.round}
+                    </Badge>
+                  )}
+                </TableCell>
+                <TableCell 
+                  className="font-medium text-sm flex items-center gap-2" 
+                  data-label="שחקן 2"
+                >
+                  <Avatar className="h-8 w-8 hidden md:inline-flex">
+                    {match.player2.avatar ? (
+                      <AvatarImage src={match.player2.avatar} alt={match.player2.name} />
+                    ) : (
+                      <AvatarFallback>{match.player2.name.charAt(0)}</AvatarFallback>
+                    )}
+                  </Avatar>
+                  <Link 
+                    href={`/players/${match.player2.id}`}
+                    className="hover:text-primary hover:underline truncate"
+                  >
+                    {match.player2.name}
+                  </Link>
+                  {match.round && (
+                    <Badge variant="outline" className="ml-2 hidden md:inline-flex">
+                      {match.round}
+                    </Badge>
+                  )}
+                </TableCell>
+                <TableCell 
+                  className="text-center font-semibold" 
+                  data-label="תוצאה"
+                >
+                  {match.status === "completed" ? (
+                    <span className="text-sm md:text-base">
+                      {match.score1}-{match.score2}
+                    </span>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">טרם נקבע</span>
+                  )}
+                </TableCell>
+                <TableCell 
+                  className="text-sm text-muted-foreground" 
+                  data-label="תאריך"
+                >
+                  {new Date(match.date).toLocaleDateString("he-IL")}
+                </TableCell>
+                <TableCell data-label="סטטוס">
+                  <Badge variant={getMatchStatusColor(match.status)}>
+                    {getMatchStatusText(match.status)}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-right" data-label="פעולות">
+                  <div className="flex items-center justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => {}}
+                    >
+                      <EyeIcon className="h-4 w-4" />
+                      <span className="sr-only">צפה</span>
+                    </Button>
+                    {isAdmin && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={() => {}}
+                      >
+                        <PencilIcon className="h-4 w-4" />
+                        <span className="sr-only">ערוך</span>
+                      </Button>
+                    )}
+                    {isAdmin && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-destructive"
+                        onClick={() => {}}
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                        <span className="sr-only">מחק</span>
+                      </Button>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }

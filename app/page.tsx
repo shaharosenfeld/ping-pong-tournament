@@ -99,158 +99,124 @@ export default function HomePage() {
           })
         }
         
-        // עיבוד הנתונים למשחקים אחרונים
-        if (matchesData.matches && matchesData.matches.length > 0) {
-          const recentMatches = [...matchesData.matches]
-            .filter(match => match.status === 'completed')
-            .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+        // עיבוד משחקים אחרונים
+        if (matchesData && matchesData.length > 0) {
+          const recent = matchesData
+            .filter((match: any) => match.status === 'completed')
+            .sort((a: any, b: any) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
             .slice(0, 5)
-            .map(match => ({
-              id: match.id,
-              tournamentId: match.tournamentId,
-              player1: {
-                id: match.player1.id,
-                name: match.player1.name,
-                rating: match.player1.rating
-              },
-              player2: {
-                id: match.player2.id,
-                name: match.player2.name,
-                rating: match.player2.rating
-              },
-              score: `${match.player1Score}-${match.player2Score}`,
-              date: formatDate(match.date || match.updatedAt)
-            }))
-          
-          setRecentMatches(recentMatches)
+            
+          setRecentMatches(recent)
         }
+        
       } catch (error) {
-        console.error("Error fetching data:", error)
+        console.error("Error fetching homepage data:", error)
         toast({
           title: "שגיאה בטעינת נתונים",
-          description: "אירעה שגיאה בטעינת הנתונים מהשרת",
+          description: "אירעה שגיאה בעת טעינת נתוני דף הבית. נסה לרענן את העמוד.",
           variant: "destructive",
         })
       } finally {
         setIsLoading(false)
       }
     }
-
+    
     fetchData()
-  }, [toast])
-
-  // Function to get format label
+  }, [])
+  
+  // פונקציות עזר לתצוגה 
   const getFormatLabel = (format: string) => {
     switch (format) {
       case 'knockout':
-        return 'נוקאאוט'
+        return 'נוק-אאוט';
       case 'league':
-        return 'ליגה'
+        return 'ליגה';
       case 'groups':
-        return 'קבוצות'
+        return 'בתים';
       default:
-        return format
+        return format;
     }
-  }
-
-  // Function to get status label
+  };
+  
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'draft':
-        return 'טיוטה'
+      case 'upcoming':
+        return 'עתידי';
       case 'active':
-        return 'פעיל'
+        return 'פעיל';
       case 'completed':
-        return 'הושלם'
-      case 'cancelled':
-        return 'בוטל'
+        return 'הסתיים';
+      case 'canceled':
+        return 'בוטל';
       default:
-        return status
+        return status;
     }
-  }
-
-  // Function to get status badge variant
+  };
+  
   const getStatusVariant = (status: string): "default" | "secondary" | "outline" => {
     switch (status) {
+      case 'upcoming':
+        return 'outline';
       case 'active':
-        return 'default'
+        return 'default';
       case 'completed':
-        return 'secondary'
+        return 'secondary';
       default:
-        return 'outline'
+        return 'outline';
     }
-  }
+  };
 
   return (
-    <div className="container mx-auto px-4 py-12">
-      <div className="max-w-[1400px] mx-auto">
-        {/* Hero Section */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 to-indigo-700 p-8 md:p-12 mb-12">
-          <div className="relative z-10">
-            <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
-              PaddleBot
-            </h1>
-            <p className="text-xl text-blue-100 mb-8 max-w-2xl">
-              מערכת מתקדמת לניהול טורנירי פינג פונג מקצועיים. עקוב אחר התקדמות השחקנים, נהל תחרויות, וצור ליגות בקלות.
-            </p>
-            <div className="flex flex-wrap gap-4">
-              {isAdmin && (
-                <Link href="/tournaments/new">
-                  <Button size="lg" className="bg-white text-blue-600 hover:bg-blue-50">
-                    צור תחרות חדשה
-                    <ArrowUpRight className="mr-2 h-5 w-5" />
-                  </Button>
-                </Link>
-              )}
-              <Link href="/stats">
-                <Button size="lg" className="bg-white text-blue-600 hover:bg-blue-50">
-                  צפה בסטטיסטיקות
-                  <BarChart className="mr-2 h-5 w-5" />
-                </Button>
-              </Link>
-            </div>
-          </div>
-          <div className="absolute inset-0 w-full h-full bg-[linear-gradient(to_right,#4f46e5_1px,transparent_1px),linear-gradient(to_bottom,#4f46e5_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)] opacity-20" />
+    <div className="pb-12">
+      <div className="container mx-auto">
+        {/* Welcome Header */}
+        <div className="text-center my-8 md:my-12 px-4">
+          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 text-blue-700">
+            ברוכים הבאים לטורניר פינג פונג מקצועי
+          </h1>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            מערכת לניהול טורנירי פינג פונג עם מעקב אחר משחקים, שחקנים וליגות
+          </p>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8 px-4 md:px-0">
           <Card className="bg-card hover:bg-accent/5 transition-colors">
-            <CardHeader>
+            <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2">
-                <Trophy className="h-6 w-6 text-yellow-500" />
-                תחרויות פעילות
+                <Trophy className="h-6 w-6 text-blue-500" />
+                טורנירים פעילים
               </CardTitle>
-              <CardDescription>טורנירים וליגות בתהליך</CardDescription>
+              <CardDescription>מספר הטורנירים הפעילים כרגע</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-4xl font-bold">{stats.activeTournaments}</div>
-              <Link href="/tournaments" className="mt-4 inline-flex items-center text-sm text-muted-foreground hover:text-primary">
-                צפה בכל התחרויות
+              <div className="text-3xl md:text-4xl font-bold">{stats.activeTournaments}</div>
+              <Link href="/tournaments" className="mt-3 inline-flex items-center text-sm text-muted-foreground hover:text-primary">
+                צפה בכל הטורנירים
                 <ArrowUpRight className="mr-1 h-4 w-4" />
               </Link>
             </CardContent>
           </Card>
 
           <Card className="bg-card hover:bg-accent/5 transition-colors">
-            <CardHeader>
+            <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2">
-                <Table className="h-6 w-6 text-emerald-500" />
+                <Table className="h-6 w-6 text-green-500" />
                 משחקים קרובים
               </CardTitle>
-              <CardDescription>משחקים מתוכננים</CardDescription>
+              <CardDescription>המשחקים המתוכננים הקרובים</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-4xl font-bold">{stats.upcomingMatches}</div>
-              <Link href="/matches" className="mt-4 inline-flex items-center text-sm text-muted-foreground hover:text-primary">
+              <div className="text-3xl md:text-4xl font-bold">{stats.upcomingMatches}</div>
+              <Link href="/matches" className="mt-3 inline-flex items-center text-sm text-muted-foreground hover:text-primary">
                 צפה בכל המשחקים
                 <ArrowUpRight className="mr-1 h-4 w-4" />
               </Link>
             </CardContent>
           </Card>
 
-          <Card className="bg-card hover:bg-accent/5 transition-colors">
-            <CardHeader>
+          <Card className="bg-card hover:bg-accent/5 transition-colors sm:col-span-2 lg:col-span-1">
+            <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-6 w-6 text-purple-500" />
                 שחקנים רשומים
@@ -258,8 +224,8 @@ export default function HomePage() {
               <CardDescription>סה"כ שחקנים פעילים</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-4xl font-bold">{stats.totalPlayers}</div>
-              <Link href="/players" className="mt-4 inline-flex items-center text-sm text-muted-foreground hover:text-primary">
+              <div className="text-3xl md:text-4xl font-bold">{stats.totalPlayers}</div>
+              <Link href="/players" className="mt-3 inline-flex items-center text-sm text-muted-foreground hover:text-primary">
                 צפה בכל השחקנים
                 <ArrowUpRight className="mr-1 h-4 w-4" />
               </Link>
@@ -269,22 +235,22 @@ export default function HomePage() {
 
         {/* Latest Tournament Section */}
         {latestTournament && (
-          <div className="mb-12">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold">הטורניר האחרון</h2>
+          <div className="mb-8 md:mb-12 px-4 md:px-0">
+            <div className="flex items-center justify-between mb-4 md:mb-6">
+              <h2 className="text-xl md:text-2xl font-bold">הטורניר האחרון</h2>
             </div>
             
-            <Card className="border-2 overflow-hidden">
+            <Card className="border overflow-hidden">
               <CardHeader className="pb-2">
-                <div className="flex justify-between items-start">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
                   <div>
-                    <CardTitle className="text-xl">{latestTournament.name}</CardTitle>
+                    <CardTitle className="text-lg md:text-xl">{latestTournament.name}</CardTitle>
                     <div className="flex items-center gap-2 mt-1 text-sm text-gray-500">
-                      <Calendar className="h-4 w-4" />
+                      <Calendar className="h-4 w-4 flex-shrink-0" />
                       <span>{latestTournament.date}</span>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <Badge variant="outline">
                       {getFormatLabel(latestTournament.format)}
                     </Badge>
@@ -297,47 +263,47 @@ export default function HomePage() {
               
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2 flex items-center">
-                      <Trophy className="h-5 w-5 text-yellow-500 mr-2" />
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold mb-3 flex items-center">
+                      <Trophy className="h-5 w-5 text-yellow-500 ml-2" />
                       סטטוס הטורניר
                     </h3>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">שחקנים:</span>
-                        <span className="font-medium">{latestTournament.players}</span>
+                        <Badge variant="outline" className="bg-white">{latestTournament.players}</Badge>
                       </div>
-                      <div className="flex justify-between">
+                      <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">משחקים:</span>
-                        <span className="font-medium">{latestTournament.matches}</span>
+                        <Badge variant="outline" className="bg-white">{latestTournament.matches}</Badge>
                       </div>
-                      <div className="flex justify-between">
+                      <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">הושלמו:</span>
-                        <span className="font-medium">{latestTournament.completedMatches} / {latestTournament.matches}</span>
+                        <Badge variant="outline" className="bg-white">{latestTournament.completedMatches} / {latestTournament.matches}</Badge>
                       </div>
                       {latestTournament.winner && (
-                        <div className="flex justify-between">
+                        <div className="flex justify-between items-center">
                           <span className="text-muted-foreground">מנצח:</span>
-                          <span className="font-medium flex items-center">
-                            <Star className="h-4 w-4 text-yellow-500 mr-1" />
+                          <Badge variant="outline" className="bg-yellow-100 text-yellow-800 flex items-center">
+                            <Star className="h-3 w-3 ml-1" />
                             {latestTournament.winner}
-                          </span>
+                          </Badge>
                         </div>
                       )}
                     </div>
                   </div>
                   
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2 flex items-center">
-                      <Table className="h-5 w-5 text-blue-500 mr-2" />
+                  <div className="bg-purple-50 p-4 rounded-lg flex flex-col justify-between">
+                    <h3 className="text-lg font-semibold mb-3 flex items-center">
+                      <Table className="h-5 w-5 text-blue-500 ml-2" />
                       צפה בטבלה
                     </h3>
-                    <div className="flex flex-col items-center justify-center h-full">
-                      <p className="text-center text-muted-foreground mb-4">
+                    <div className="flex flex-col items-center justify-center mt-2">
+                      <p className="text-center text-muted-foreground mb-4 text-sm">
                         לחץ על הכפתור למטה כדי לצפות בטבלת הדירוג המלאה של הטורניר
                       </p>
                       <Link href={`/tournaments/${latestTournament.id}?tab=standings`}>
-                        <Button>
+                        <Button className="w-full sm:w-auto">
                           צפה בטבלת הדירוג
                           <Table className="mr-2 h-4 w-4" />
                         </Button>
@@ -351,27 +317,27 @@ export default function HomePage() {
         )}
 
         {/* Features Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <div className="p-6 rounded-2xl bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900">
-            <Trophy className="h-12 w-12 text-purple-600 dark:text-purple-400 mb-4" />
-            <h3 className="text-xl font-semibold mb-2">ניהול תחרויות מתקדם</h3>
-            <p className="text-muted-foreground">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 px-4 md:px-0">
+          <div className="p-5 md:p-6 rounded-2xl bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900">
+            <Trophy className="h-10 w-10 md:h-12 md:w-12 text-purple-600 dark:text-purple-400 mb-3 md:mb-4" />
+            <h3 className="text-lg md:text-xl font-semibold mb-2">ניהול תחרויות מתקדם</h3>
+            <p className="text-muted-foreground text-sm md:text-base">
               מערכת חכמה לניהול טורנירים בפורמטים שונים: נוק-אאוט, ליגה וקבוצות
             </p>
           </div>
 
-          <div className="p-6 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900">
-            <BarChart className="h-12 w-12 text-blue-600 dark:text-blue-400 mb-4" />
-            <h3 className="text-xl font-semibold mb-2">סטטיסטיקות מפורטות</h3>
-            <p className="text-muted-foreground">
+          <div className="p-5 md:p-6 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900">
+            <BarChart className="h-10 w-10 md:h-12 md:w-12 text-blue-600 dark:text-blue-400 mb-3 md:mb-4" />
+            <h3 className="text-lg md:text-xl font-semibold mb-2">סטטיסטיקות מפורטות</h3>
+            <p className="text-muted-foreground text-sm md:text-base">
               מעקב אחר ביצועי שחקנים, דירוגים ותוצאות בזמן אמת
             </p>
           </div>
 
-          <div className="p-6 rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950 dark:to-emerald-900">
-            <Users className="h-12 w-12 text-emerald-600 dark:text-emerald-400 mb-4" />
-            <h3 className="text-xl font-semibold mb-2">ניהול שחקנים</h3>
-            <p className="text-muted-foreground">
+          <div className="p-5 md:p-6 rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950 dark:to-emerald-900 sm:col-span-2 lg:col-span-1">
+            <Users className="h-10 w-10 md:h-12 md:w-12 text-emerald-600 dark:text-emerald-400 mb-3 md:mb-4" />
+            <h3 className="text-lg md:text-xl font-semibold mb-2">ניהול שחקנים</h3>
+            <p className="text-muted-foreground text-sm md:text-base">
               מעקב אחר התקדמות השחקנים, דירוגים והישגים לאורך זמן
             </p>
           </div>

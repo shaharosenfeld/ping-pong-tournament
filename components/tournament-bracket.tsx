@@ -158,146 +158,84 @@ interface MatchCardProps {
 function MatchCard({ player1, player2, completed, winner, isFinal = false }: MatchCardProps) {
   const ensureValidImageUrl = (avatar: string | undefined) => {
     if (!avatar) return '/placeholder-user.jpg';
-    console.log('Tournament bracket avatar:', avatar);
     return getImageUrl(avatar);
   };
 
   return (
-    <Card
-      className={cn(
-        "w-[220px] p-3",
-        isFinal && "border-yellow-500/50 dark:border-yellow-500/20 bg-gradient-to-br from-yellow-50/50 to-transparent dark:from-yellow-950/50"
-      )}
-    >
-      <div className="space-y-2">
-        <div
-          className={cn(
-            "flex items-center gap-2 p-1.5 rounded transition-colors",
-            completed && winner === 1 && "bg-gradient-to-r from-primary/10 to-transparent"
-          )}
-        >
-          <div className="relative">
-            <Avatar className={cn(
-              "h-10 w-10 transition-all duration-300 border-2",
-              completed && winner === 1 
-                ? "border-green-500 shadow-lg shadow-green-500/20" 
-                : "border-gray-200"
-            )}>
+    <Card className={cn(
+      "overflow-hidden border shadow-sm transition-colors",
+      isFinal ? "border-yellow-200 bg-yellow-50/50" : "",
+      completed ? (winner ? "bg-blue-50/50" : "bg-red-50/50") : ""
+    )}>
+      <CardContent className="p-3 sm:p-4">
+        {/* Top player */}
+        <div className={cn(
+          "flex items-center p-2 rounded-md",
+          completed && winner === 1 ? "bg-green-100" : "",
+          !completed ? "opacity-90" : ""
+        )}>
+          <div className="relative flex-shrink-0">
+            <Avatar className="h-6 w-6 sm:h-8 sm:w-8 border border-blue-100">
               {player1.avatar ? (
-                <div className="h-full w-full overflow-hidden rounded-full">
-                  <img
-                    src={ensureValidImageUrl(player1.avatar)}
-                    alt={player1.name}
-                    className="h-full w-full object-cover"
-                    onError={(e) => {
-                      console.log('Error loading player1 image');
-                      (e.target as HTMLImageElement).src = '/placeholder-user.jpg';
-                    }}
-                  />
-                </div>
+                <AvatarImage src={ensureValidImageUrl(player1.avatar)} alt={player1.name} />
               ) : (
-                <AvatarFallback className={cn(
-                  completed && winner === 1 ? "bg-green-500" : "bg-blue-500",
-                  "text-white font-semibold"
-                )}>
-                  {typeof player1.initials === 'string' ? player1.initials : ''}
-                </AvatarFallback>
+                <AvatarFallback>{player1.initials || player1.name.charAt(0)}</AvatarFallback>
               )}
             </Avatar>
             {player1.level && player1.level > 0 && (
-              <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold border border-white shadow-sm">
+              <div className="absolute -bottom-1 -right-1 bg-blue-500 text-white w-3 h-3 text-[8px] rounded-full flex items-center justify-center border border-white">
                 {player1.level}
               </div>
             )}
-            {completed && winner === 1 && (
-              <div className="absolute -top-1 -right-1 bg-green-500 text-white w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold border border-white shadow-sm">
-                ✓
-              </div>
-            )}
           </div>
-          <span className={cn(
-            "text-sm font-medium flex-1 truncate",
-            completed && winner === 1 && "font-bold text-primary"
-          )}>{player1.name}</span>
-          <div className="flex items-center">
-            <span
-              className={cn(
-                "text-sm font-bold px-1.5 py-0.5 rounded",
-                completed && winner === 1 ? "bg-green-100 text-green-800" : "text-gray-600"
-              )}
-            >
-              {player1.score !== undefined ? player1.score : "-"}
-            </span>
+          <div className="flex items-center justify-between flex-1 ml-2">
+            <div className="text-sm font-medium truncate max-w-[85px] sm:max-w-none">
+              {player1.name}
+            </div>
+            {completed && <div className="font-bold text-sm">{player1.score}</div>}
           </div>
         </div>
-        <div
-          className={cn(
-            "flex items-center gap-2 p-1.5 rounded transition-colors",
-            completed && winner === 2 && "bg-gradient-to-r from-primary/10 to-transparent"
-          )}
-        >
-          <div className="relative">
-            <Avatar className={cn(
-              "h-10 w-10 transition-all duration-300 border-2",
-              completed && winner === 2 
-                ? "border-green-500 shadow-lg shadow-green-500/20" 
-                : "border-gray-200"
-            )}>
+
+        {/* VS Divider for mobile */}
+        <div className="text-center text-xs text-muted-foreground my-1 sm:my-2">vs</div>
+        
+        {/* Bottom player */}
+        <div className={cn(
+          "flex items-center p-2 rounded-md",
+          completed && winner === 2 ? "bg-green-100" : "",
+          !completed ? "opacity-90" : ""
+        )}>
+          <div className="relative flex-shrink-0">
+            <Avatar className="h-6 w-6 sm:h-8 sm:w-8 border border-blue-100">
               {player2.avatar ? (
-                <div className="h-full w-full overflow-hidden rounded-full">
-                  <img
-                    src={ensureValidImageUrl(player2.avatar)}
-                    alt={player2.name}
-                    className="h-full w-full object-cover"
-                    onError={(e) => {
-                      console.log('Error loading player2 image');
-                      (e.target as HTMLImageElement).src = '/placeholder-user.jpg';
-                    }}
-                  />
-                </div>
+                <AvatarImage src={ensureValidImageUrl(player2.avatar)} alt={player2.name} />
               ) : (
-                <AvatarFallback className={cn(
-                  completed && winner === 2 ? "bg-green-500" : "bg-blue-500",
-                  "text-white font-semibold"
-                )}>
-                  {typeof player2.initials === 'string' ? player2.initials : ''}
-                </AvatarFallback>
+                <AvatarFallback>{player2.initials || player2.name.charAt(0)}</AvatarFallback>
               )}
             </Avatar>
             {player2.level && player2.level > 0 && (
-              <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold border border-white shadow-sm">
+              <div className="absolute -bottom-1 -right-1 bg-blue-500 text-white w-3 h-3 text-[8px] rounded-full flex items-center justify-center border border-white">
                 {player2.level}
               </div>
             )}
-            {completed && winner === 2 && (
-              <div className="absolute -top-1 -right-1 bg-green-500 text-white w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold border border-white shadow-sm">
-                ✓
-              </div>
-            )}
           </div>
-          <span className={cn(
-            "text-sm font-medium flex-1 truncate",
-            completed && winner === 2 && "font-bold text-primary"
-          )}>{player2.name}</span>
-          <div className="flex items-center">
-            <span
-              className={cn(
-                "text-sm font-bold px-1.5 py-0.5 rounded",
-                completed && winner === 2 ? "bg-green-100 text-green-800" : "text-gray-600"
-              )}
-            >
-              {player2.score !== undefined ? player2.score : "-"}
-            </span>
+          <div className="flex items-center justify-between flex-1 ml-2">
+            <div className="text-sm font-medium truncate max-w-[85px] sm:max-w-none">
+              {player2.name}
+            </div>
+            {completed && <div className="font-bold text-sm">{player2.score}</div>}
           </div>
         </div>
-        {completed && (
-          <div className="mt-1 pt-1 border-t border-dashed border-muted-foreground/20 text-center">
-            <span className="text-xs text-muted-foreground">
-              {winner ? `${winner === 1 ? player1.name : player2.name} ניצח` : "תיקו"}
-            </span>
+
+        {/* Match status */}
+        {isFinal && (
+          <div className="mt-2 flex justify-center">
+            <Badge variant="outline" className="bg-yellow-100 text-yellow-800">
+              <Trophy className="h-3 w-3 mr-1" /> גמר
+            </Badge>
           </div>
         )}
-      </div>
+      </CardContent>
     </Card>
   )
 }

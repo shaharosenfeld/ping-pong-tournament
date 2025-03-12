@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Trophy, Users, Table as TableIcon, BarChart, Plus, Star, Calendar, Clock, Medal, Menu, HelpCircle } from "lucide-react"
+import { Trophy, Users, Table as TableIcon, BarChart, Plus, Star, Calendar, Clock, Medal, Menu, HelpCircle, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import Image from "next/image"
 import { getImageUrl } from "@/lib/utils"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { cn } from "@/lib/utils"
 
 interface Tournament {
   id: string
@@ -61,12 +63,14 @@ export function Sidebar() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isMobile, setIsMobile] = useState(false)
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(false)
 
   useEffect(() => {
     // בדיקה אם מדובר בתצוגת מובייל
     const checkIsMobile = () => {
-      setIsMobile(window.innerWidth < 1024);
+      const mobile = window.innerWidth < 1024;
+      setIsMobile(mobile);
+      setIsOpen(!mobile); // Auto close on mobile, open on desktop
     };
     
     checkIsMobile();
@@ -75,6 +79,7 @@ export function Sidebar() {
     // טעינת הנתונים
     const fetchData = async () => {
       try {
+        setLoading(true);
         // טעינת נתונים סטטיסטיים
         const statsResponse = await fetch('/api/stats')
         const statsData = await statsResponse.json()
@@ -99,21 +104,11 @@ export function Sidebar() {
         const topPlayers = playersData
           ? [...playersData].sort((a: Player, b: Player) => b.rating - a.rating).slice(0, 5)
           : []
-        
-        // הדפסת נתיבי התמונות לבדיקה מורחבת
-        console.log('Detailed players data:', {
-          rawPlayersData: playersData ? playersData.slice(0, 3) : [],
-          topPlayersAvatars: topPlayers.map(p => ({ 
-            name: p.name,
-            avatarOriginal: p.avatar,
-            avatarProcessed: getImageUrl(p.avatar)
-          }))
-        });
-        
+          
         setPlayers(topPlayers)
-      } catch (e) {
-        console.error('Error fetching sidebar data:', e)
-        setError('אירעה שגיאה בטעינת הנתונים')
+      } catch (err) {
+        console.error('Error fetching sidebar data:', err)
+        setError('שגיאה בטעינת הנתונים')
       } finally {
         setLoading(false)
       }
@@ -122,207 +117,179 @@ export function Sidebar() {
     fetchData()
     
     return () => {
-      window.removeEventListener('resize', checkIsMobile);
-    };
+      window.removeEventListener('resize', checkIsMobile)
+    }
   }, [])
 
-  // בתצוגת מובייל, נציג כפתור המציג/מסתיר את התפריט
-  if (isMobile && !isSidebarOpen) {
-    return (
-      <Button 
-        variant="outline" 
-        size="icon" 
-        className="fixed bottom-4 right-4 z-50 rounded-full shadow-lg bg-white" 
-        onClick={() => setIsSidebarOpen(true)}
-      >
-        <Menu className="h-5 w-5" />
-      </Button>
-    );
-  }
-
-  return (
-    <div className="hidden lg:block w-64 bg-white border-l border-blue-100 p-4 fixed top-16 bottom-0 right-0">
-      <ScrollArea className="h-full">
-        <div className="space-y-4">
-          <div>
-            <h3 className="mb-2 px-4 text-lg font-semibold tracking-tight text-blue-800">
-              נתונים מעניינים
-            </h3>
-            <div className="space-y-3 px-4">
-              <div className="flex flex-col">
-                <span className="text-sm text-muted-foreground">סה"כ משחקים</span>
-                <div className="flex items-center">
-                  <TableIcon className="h-4 w-4 text-blue-500 mr-2" />
-                  <span className="font-medium">{stats.totalMatches}</span>
-                  <span className="text-xs text-gray-500 ml-1">
-                    ({stats.completedMatches || 0} הושלמו)
-                  </span>
-                </div>
-              </div>
-              
-              <div className="flex flex-col">
-                <span className="text-sm text-muted-foreground">אחוז השלמה</span>
-                <div className="flex items-center">
-                  <Clock className="h-4 w-4 text-green-500 mr-2" />
-                  <span className="font-medium">
-                    {stats.totalMatches > 0 
-                      ? Math.round(((stats.completedMatches || 0) / stats.totalMatches) * 100) 
-                      : 0}%
-                  </span>
-                </div>
-              </div>
-              
-              <div className="flex flex-col">
-                <span className="text-sm text-muted-foreground">דירוג ממוצע</span>
-                <div className="flex items-center">
-                  <BarChart className="h-4 w-4 text-green-500 mr-2" />
-                  <span className="font-medium">{stats.averageScore || 0}</span>
-                  <span className="text-xs text-gray-500 ml-1">נק' בממוצע</span>
-                </div>
-              </div>
-              
-              <div className="flex flex-col">
-                <span className="text-sm text-muted-foreground">דירוג הגבוה ביותר</span>
-                <div className="flex items-center">
-                  <Trophy className="h-4 w-4 text-yellow-500 mr-2" />
-                  <span className="font-medium">{stats.highestRating}</span>
-                </div>
-              </div>
-              
-              {stats.mostActivePlayer?.name && (
-                <div className="flex flex-col">
-                  <span className="text-sm text-muted-foreground">השחקן הפעיל ביותר</span>
-                  <div className="flex items-center">
-                    <Users className="h-4 w-4 text-purple-500 mr-2" />
-                    <span className="font-medium">{stats.mostActivePlayer.name}</span>
-                    <Badge variant="outline" className="mr-auto text-xs">
-                      {stats.mostActivePlayer.matches} משחקים
-                    </Badge>
-                  </div>
-                </div>
-              )}
-              
-              {/* דירוג שחקנים מובילים */}
-              {players.length > 0 && (
-                <div className="pt-3 mt-3 border-t border-dashed border-blue-100">
-                  <span className="text-sm font-semibold block mb-2">דירוג שחקנים מובילים</span>
-                  <div className="space-y-2">
-                    {players.map((player, index) => (
-                      <Link key={player.id} href={`/players/${player.id}`}>
-                        <div className="flex items-center gap-2 py-1 px-1 rounded-sm hover:bg-blue-50 transition-colors">
-                          <div className="relative">
-                            <Avatar className="h-7 w-7 border border-blue-100">
-                              {player.avatar ? (
-                                <div className="h-full w-full overflow-hidden rounded-full">
-                                  <img 
-                                    src={getImageUrl(player.avatar)} 
-                                    alt={player.name} 
-                                    className="h-full w-full object-cover rounded-full"
-                                    onError={(e) => {
-                                      console.log('Error loading player image in sidebar');
-                                      const target = e.target as HTMLImageElement;
-                                      const originalSrc = target.src;
-                                      const newSrc = `${originalSrc}?t=${new Date().getTime()}`;
-                                      console.log('Trying with cache busting:', newSrc);
-                                      target.src = newSrc;
-                                      
-                                      target.onerror = () => {
-                                        console.log('Second attempt failed, using placeholder');
-                                        target.src = '/placeholder-user.jpg';
-                                        target.onerror = null;
-                                      };
-                                    }}
-                                  />
-                                </div>
-                              ) : (
-                                <AvatarFallback className="bg-blue-100 text-blue-600 text-xs rounded-full">
-                                  {typeof player.initials === 'string' ? player.initials : ''}
-                                </AvatarFallback>
-                              )}
-                            </Avatar>
-                            {player.level > 0 && (
-                              <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white w-3 h-3 rounded-full flex items-center justify-center text-[7px] font-bold border border-white">
-                                {player.level}
-                              </div>
-                            )}
-                          </div>
-                          
-                          <div className="flex-1 truncate text-sm">
-                            {player.name}
-                          </div>
-                          
-                          <div className="flex items-center">
-                            <div className={`flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-bold ${
-                              index === 0 ? "bg-yellow-100 text-yellow-700" : 
-                              index === 1 ? "bg-gray-100 text-gray-700" : 
-                              index === 2 ? "bg-amber-100 text-amber-700" :
-                              "bg-blue-50 text-blue-700"
-                            }`}>
-                              {index + 1}
-                            </div>
-                            <Badge className="ml-1 text-[10px] py-0 h-4 bg-blue-50 text-blue-700 font-medium">
-                              {player.rating}
-                            </Badge>
-                          </div>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              )}
+  // טוען את תוכן הסייד-בר - אותו תוכן ישמש גם ל-mobile וגם ל-desktop
+  const SidebarContent = () => (
+    <ScrollArea className="h-full">
+      <div className="space-y-4 py-4">
+        <div className="px-4 space-y-2">
+          <h2 className="text-lg font-semibold tracking-tight mb-2">סטטיסטיקות מהירות</h2>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-col p-3 bg-blue-50 rounded-lg">
+              <div className="text-xs font-medium text-muted-foreground mb-1">טורנירים פעילים</div>
+              <div className="text-2xl font-bold text-blue-700">{stats.activeTournaments}</div>
+            </div>
+            <div className="flex flex-col p-3 bg-green-50 rounded-lg">
+              <div className="text-xs font-medium text-muted-foreground mb-1">סה״כ שחקנים</div>
+              <div className="text-2xl font-bold text-green-700">{stats.totalPlayers}</div>
+            </div>
+            <div className="flex flex-col p-3 bg-purple-50 rounded-lg">
+              <div className="text-xs font-medium text-muted-foreground mb-1">סה״כ משחקים</div>
+              <div className="text-2xl font-bold text-purple-700">{stats.totalMatches}</div>
+            </div>
+            <div className="flex flex-col p-3 bg-amber-50 rounded-lg">
+              <div className="text-xs font-medium text-muted-foreground mb-1">דירוג שיא</div>
+              <div className="text-2xl font-bold text-amber-700">{stats.highestRating}</div>
             </div>
           </div>
-
-          {tournaments.length > 0 && (
-            <div>
-              <h3 className="mb-2 px-4 text-lg font-semibold tracking-tight text-blue-800">
-                תחרויות פעילות
-              </h3>
-              <div className="space-y-1">
-                {tournaments.map(tournament => (
-                  <Link key={tournament.id} href={`/tournaments/${tournament.id}`}>
-                    <Button variant="ghost" className="w-full justify-start gap-2">
-                      <Trophy className="h-4 w-4 text-yellow-500" />
-                      <span>{tournament.name}</span>
-                      <Badge variant="secondary" className="mr-auto">פעיל</Badge>
-                    </Button>
-                  </Link>
-                ))}
-              </div>
+        </div>
+  
+        {/* ... keep rest of sidebar content the same ... */}
+        
+        {/* טורנירים פעילים */}
+        <div className="px-4 py-2">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-lg font-semibold tracking-tight">טורנירים פעילים</h2>
+            <Badge variant="outline" className="bg-green-50 text-green-700">
+              {stats.activeTournaments}
+            </Badge>
+          </div>
+          {tournaments.length > 0 ? (
+            <div className="space-y-1">
+              {tournaments.map((tournament) => (
+                <Link
+                  key={tournament.id}
+                  href={`/tournaments/${tournament.id}`}
+                  className="flex items-center rounded-md px-2 py-1.5 text-sm hover:bg-muted"
+                >
+                  <Trophy className="h-4 w-4 ml-2" />
+                  <span className="truncate">{tournament.name}</span>
+                </Link>
+              ))}
             </div>
-          )}
-
-          {matches.length > 0 && (
-            <div>
-              <h3 className="mb-2 px-4 text-lg font-semibold tracking-tight text-blue-800">
-                משחקים קרובים
-              </h3>
-              <div className="space-y-1">
-                {matches.map(match => (
-                  <Link key={match.id} href={`/matches/${match.id}`}>
-                    <Button variant="ghost" className="w-full justify-start gap-2">
-                      <Calendar className="h-4 w-4 text-green-500" />
-                      <span>{match.player1.name} vs {match.player2.name}</span>
-                      <Badge variant="outline" className="mr-auto">
-                        {new Date(match.date).toLocaleDateString('he-IL')}
-                      </Badge>
-                    </Button>
-                  </Link>
-                ))}
-              </div>
+          ) : loading ? (
+            <div className="flex justify-center py-2">
+              <div className="animate-pulse h-6 w-32 bg-gray-200 rounded"></div>
             </div>
+          ) : (
+            <div className="text-sm text-muted-foreground py-2">אין טורנירים פעילים כרגע</div>
           )}
-
-          <div className="mt-4 py-4 border-t border-dashed border-blue-100">
-            <Link href="/rules" className="flex justify-center">
-              <Button variant="outline" size="sm" className="w-full gap-1 text-indigo-700 border-indigo-200 hover:bg-indigo-50">
-                <HelpCircle className="h-3.5 w-3.5" />
-                חוקי הדירוג והמשחק
+          <div className="mt-2">
+            <Link href="/tournaments">
+              <Button variant="ghost" size="sm" className="w-full justify-start">
+                <Plus className="h-4 w-4 ml-2" />
+                הצג את כל הטורנירים
               </Button>
             </Link>
           </div>
         </div>
-      </ScrollArea>
-    </div>
+  
+        {/* שחקנים מובילים */}
+        <div className="px-4 py-2">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-lg font-semibold tracking-tight">שחקנים מובילים</h2>
+            <Badge variant="outline" className="bg-blue-50 text-blue-700">
+              Top 5
+            </Badge>
+          </div>
+          {players.length > 0 ? (
+            <div className="space-y-2">
+              {players.map((player, index) => (
+                <Link
+                  key={player.id}
+                  href={`/players/${player.id}`}
+                  className="flex items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-muted"
+                >
+                  <div className="flex items-center">
+                    <Avatar className="h-6 w-6 ml-2">
+                      {player.avatar ? (
+                        <AvatarImage src={getImageUrl(player.avatar)} alt={player.name} />
+                      ) : (
+                        <AvatarFallback>{player.initials || player.name.charAt(0)}</AvatarFallback>
+                      )}
+                    </Avatar>
+                    <span className="truncate">{player.name}</span>
+                  </div>
+                  <Badge variant="outline" className={`${index === 0 ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-50 text-blue-700'}`}>
+                    {player.rating}
+                  </Badge>
+                </Link>
+              ))}
+            </div>
+          ) : loading ? (
+            <div className="flex flex-col space-y-2 py-2">
+              <div className="animate-pulse h-6 w-full bg-gray-200 rounded"></div>
+              <div className="animate-pulse h-6 w-full bg-gray-200 rounded"></div>
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground py-2">אין נתוני שחקנים זמינים</div>
+          )}
+          <div className="mt-2">
+            <Link href="/players">
+              <Button variant="ghost" size="sm" className="w-full justify-start">
+                <Plus className="h-4 w-4 ml-2" />
+                הצג את כל השחקנים
+              </Button>
+            </Link>
+          </div>
+        </div>
+        
+        {/* כפתורים מהירים */}
+        <div className="px-4 py-2">
+          <h2 className="text-lg font-semibold tracking-tight mb-2">כלים מהירים</h2>
+          <div className="grid gap-2">
+            <Link href="/tournaments/new">
+              <Button variant="outline" className="w-full justify-start">
+                <Trophy className="h-4 w-4 ml-2" />
+                צור טורניר חדש
+              </Button>
+            </Link>
+            <Link href="/stats">
+              <Button variant="outline" className="w-full justify-start">
+                <BarChart className="h-4 w-4 ml-2" />
+                צפה בסטטיסטיקות
+              </Button>
+            </Link>
+            <Link href="/rules">
+              <Button variant="outline" className="w-full justify-start">
+                <HelpCircle className="h-4 w-4 ml-2" />
+                חוקי הטורניר
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    </ScrollArea>
+  )
+
+  // בתצוגת דסקטופ - הסייד-בר תמיד מוצג
+  if (!isMobile) {
+    return (
+      <div className="hidden lg:block fixed top-16 right-0 bottom-0 z-20 w-64 border-l bg-white shadow-sm">
+        <SidebarContent />
+      </div>
+    )
+  }
+
+  // בתצוגת מובייל - שימוש ב-Sheet מספריית UI שמופעל על ידי כפתור
+  return (
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button 
+          variant="outline" 
+          size="icon" 
+          className="fixed bottom-4 right-4 h-12 w-12 rounded-full shadow-md z-50 bg-primary text-primary-foreground"
+        >
+          <Menu />
+          <span className="sr-only">פתח תפריט</span>
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="right" className="w-full sm:w-96 p-0 border-l">
+        <SidebarContent />
+      </SheetContent>
+    </Sheet>
   )
 } 

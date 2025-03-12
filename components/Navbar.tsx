@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Trophy, Users, Table as TableIcon, BarChart, Home, Settings, Bell, HelpCircle, LogIn, LogOut } from "lucide-react"
+import { Trophy, Users, Table as TableIcon, BarChart, Home, Settings, Bell, HelpCircle, LogIn, LogOut, Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { useEffect, useState } from "react"
 import { useAuth } from "@/app/hooks/use-auth"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 
 type Notification = {
   id: string
@@ -30,6 +31,7 @@ export function Navbar() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   useEffect(() => {
     // Scroll handler for navbar styling
@@ -98,105 +100,143 @@ export function Navbar() {
     // Set up auto-refresh for notifications every minute
     const intervalId = setInterval(fetchNotifications, 60000)
     
+    // Clean up on component unmount
     return () => {
       window.removeEventListener("scroll", handleScroll)
       clearInterval(intervalId)
     }
   }, [])
-
+  
   const markAsRead = async (id: string) => {
     try {
-      const response = await fetch(`/api/notifications/${id}`, {
-        method: 'PATCH',
+      const response = await fetch(`/api/notifications/${id}/read`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache',
         },
-        body: JSON.stringify({ read: true }),
       });
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Error marking notification as read:', response.status, errorData);
-        return;
+        throw new Error('Failed to mark notification as read');
       }
       
       // Update local state
-      setNotifications(notifications.map(n => 
-        n.id === id ? { ...n, read: true } : n
-      ));
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
+      setNotifications(prev => prev.map(notification => {
+        if (notification.id === id) {
+          return { ...notification, read: true };
+        }
+        return notification;
+      }));
+      
+      // Update unread count
+      setUnreadCount(prev => Math.max(0, prev - 1));
+      
+    } catch (e) {
+      console.error('Error marking notification as read:', e);
     }
-  }
-
+  };
+  
   const formatTimeAgo = (dateString: string): string => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffSecs = Math.floor(diffMs / 1000)
-    const diffMins = Math.floor(diffSecs / 60)
-    const diffHours = Math.floor(diffMins / 60)
-    const diffDays = Math.floor(diffHours / 24)
+    const now = new Date();
+    const date = new Date(dateString);
+    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
     
-    if (diffDays > 0) {
-      return diffDays === 1 ? 'לפני יום' : `לפני ${diffDays} ימים`
-    } else if (diffHours > 0) {
-      return diffHours === 1 ? 'לפני שעה' : `לפני ${diffHours} שעות`
-    } else if (diffMins > 0) {
-      return diffMins === 1 ? 'לפני דקה' : `לפני ${diffMins} דקות`
-    } else {
-      return 'זה עתה'
+    let interval = Math.floor(seconds / 31536000);
+    if (interval >= 1) {
+      return `לפני ${interval} שנים`;
     }
-  }
+    
+    interval = Math.floor(seconds / 2592000);
+    if (interval >= 1) {
+      return `לפני ${interval} חודשים`;
+    }
+    
+    interval = Math.floor(seconds / 86400);
+    if (interval >= 1) {
+      return `לפני ${interval} ימים`;
+    }
+    
+    interval = Math.floor(seconds / 3600);
+    if (interval >= 1) {
+      return `לפני ${interval} שעות`;
+    }
+    
+    interval = Math.floor(seconds / 60);
+    if (interval >= 1) {
+      return `לפני ${interval} דקות`;
+    }
+    
+    return 'לפני פחות מדקה';
+  };
 
   return (
-    <nav className="bg-white shadow-md border-b border-blue-100">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
-          {/* Main Navigation */}
-          <div className="flex items-center space-x-8">
-            <Link href="/">
-              <Button variant="ghost" className="flex items-center gap-2 text-blue-700">
-                <Home className="h-5 w-5" />
-                <span>דף הבית</span>
-              </Button>
+    <nav className={`bg-white sticky top-0 z-30 w-full transition-shadow ${
+      isScrolled ? "shadow-md" : ""
+    }`}>
+      <div className="mx-auto px-4 sm:px-6">
+        <div className="flex h-16 items-center justify-between">
+          {/* Logo and Brand */}
+          <div className="flex items-center">
+            <Link href="/" className="flex items-center">
+              <div className="flex-shrink-0">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-8 w-8 text-primary"
+                >
+                  <path
+                    d="M4 17L10 11L4 5M12 19H20"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+              <span className="hidden text-lg font-semibold text-blue-700 sm:block mr-2">
+                פינג פונג <span className="text-blue-500">מקצועי</span>
+              </span>
             </Link>
-            
-            <div className="hidden md:flex items-center space-x-4">
-              <Link href="/tournaments">
-                <Button variant="ghost" className="flex items-center gap-2 text-blue-700">
-                  <Trophy className="h-5 w-5" />
-                  <span>תחרויות</span>
-                  <Badge variant="secondary" className="mr-2 bg-blue-100">
-                    חדש
-                  </Badge>
+          </div>
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex md:flex-1 md:items-center md:justify-between">
+            <div className="flex space-x-4 space-x-reverse">
+              <Link href="/">
+                <Button variant="ghost" className="flex items-center gap-2">
+                  <Home className="h-5 w-5" />
+                  <span>דף הבית</span>
                 </Button>
               </Link>
-              
+              <Link href="/tournaments">
+                <Button variant="ghost" className="flex items-center gap-2">
+                  <Trophy className="h-5 w-5" />
+                  <span>תחרויות</span>
+                </Button>
+              </Link>
               <Link href="/matches">
-                <Button variant="ghost" className="flex items-center gap-2 text-green-700">
+                <Button variant="ghost" className="flex items-center gap-2">
                   <TableIcon className="h-5 w-5" />
                   <span>משחקים</span>
                 </Button>
               </Link>
-              
               <Link href="/players">
-                <Button variant="ghost" className="flex items-center gap-2 text-purple-700">
+                <Button variant="ghost" className="flex items-center gap-2">
                   <Users className="h-5 w-5" />
                   <span>שחקנים</span>
                 </Button>
               </Link>
-              
               <Link href="/stats">
-                <Button variant="ghost" className="flex items-center gap-2 text-amber-700">
+                <Button variant="ghost" className="flex items-center gap-2">
                   <BarChart className="h-5 w-5" />
                   <span>סטטיסטיקות</span>
                 </Button>
               </Link>
-              
               <Link href="/rules">
-                <Button variant="ghost" className="flex items-center gap-2 text-indigo-700">
+                <Button variant="ghost" className="flex items-center gap-2">
                   <HelpCircle className="h-5 w-5" />
                   <span>חוקים ודירוג</span>
                 </Button>
@@ -205,7 +245,7 @@ export function Navbar() {
           </div>
 
           {/* Quick Actions */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center gap-2 md:gap-4">
             {/* התראות מוצגות רק למנהלים */}
             {isAdmin && (
               <DropdownMenu>
@@ -251,10 +291,10 @@ export function Navbar() {
             {/* כפתור לוח הבקרה - מוצג רק למנהלים */}
             {isAdmin ? (
               <>
-                <Link href="/admin">
+                <Link href="/admin" className="hidden md:block">
                   <Button variant="ghost" className="flex items-center gap-2">
                     <Settings className="h-5 w-5 text-gray-600" />
-                    <span className="hidden md:inline">לוח בקרה</span>
+                    <span className="md:inline">לוח בקרה</span>
                   </Button>
                 </Link>
                 <Button 
@@ -277,83 +317,84 @@ export function Navbar() {
                 </Button>
               </Link>
             )}
-          </div>
 
-          {/* Mobile Menu Button */}
-          <div className="md:hidden">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon">
+            {/* Mobile Menu Button - Only visible on mobile */}
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon" className="md:hidden">
+                  <Menu className="h-5 w-5" />
                   <span className="sr-only">פתח תפריט</span>
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                  </svg>
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem>
-                  <Link href="/tournaments" className="flex items-center gap-2 w-full">
-                    <Trophy className="h-4 w-4" />
-                    <span>תחרויות</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Link href="/matches" className="flex items-center gap-2 w-full">
-                    <TableIcon className="h-4 w-4" />
-                    <span>משחקים</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Link href="/players" className="flex items-center gap-2 w-full">
-                    <Users className="h-4 w-4" />
-                    <span>שחקנים</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Link href="/stats" className="flex items-center gap-2 w-full">
-                    <BarChart className="h-4 w-4" />
-                    <span>סטטיסטיקות</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Link href="/rules" className="flex items-center gap-2 w-full">
-                    <HelpCircle className="h-4 w-4" />
-                    <span>חוקים ודירוג</span>
-                  </Link>
-                </DropdownMenuItem>
-                
-                {/* כפתורי מנהל/התחברות בתפריט המובייל */}
-                {isAdmin ? (
-                  <>
-                    <DropdownMenuItem>
-                      <Link href="/admin" className="flex items-center gap-2 w-full">
-                        <Settings className="h-4 w-4" />
-                        <span>לוח בקרה</span>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[75vw] max-w-sm p-0">
+                <div className="flex flex-col h-full">
+                  <div className="p-4 border-b">
+                    <div className="flex justify-between items-center">
+                      <h2 className="text-lg font-semibold">תפריט ניווט</h2>
+                    </div>
+                  </div>
+                  <div className="flex-1 overflow-auto py-2">
+                    <div className="space-y-1 px-2">
+                      <Link href="/" className="flex items-center p-2 rounded-md hover:bg-muted">
+                        <Home className="h-5 w-5 ml-2 text-blue-600" />
+                        <span className="text-sm font-medium">דף הבית</span>
                       </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <button 
-                        className="flex items-center gap-2 w-full text-red-600"
-                        onClick={() => {
-                          logout();
-                          window.location.href = '/';
-                        }}
-                      >
-                        <LogOut className="h-4 w-4" />
-                        <span>התנתק</span>
-                      </button>
-                    </DropdownMenuItem>
-                  </>
-                ) : (
-                  <DropdownMenuItem>
-                    <Link href="/login" className="flex items-center gap-2 w-full text-blue-600">
-                      <LogIn className="h-4 w-4" />
-                      <span>התחבר כמנהל</span>
-                    </Link>
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+                      <Link href="/tournaments" className="flex items-center p-2 rounded-md hover:bg-muted">
+                        <Trophy className="h-5 w-5 ml-2 text-yellow-600" />
+                        <span className="text-sm font-medium">תחרויות</span>
+                      </Link>
+                      <Link href="/matches" className="flex items-center p-2 rounded-md hover:bg-muted">
+                        <TableIcon className="h-5 w-5 ml-2 text-green-600" />
+                        <span className="text-sm font-medium">משחקים</span>
+                      </Link>
+                      <Link href="/players" className="flex items-center p-2 rounded-md hover:bg-muted">
+                        <Users className="h-5 w-5 ml-2 text-indigo-600" />
+                        <span className="text-sm font-medium">שחקנים</span>
+                      </Link>
+                      <Link href="/stats" className="flex items-center p-2 rounded-md hover:bg-muted">
+                        <BarChart className="h-5 w-5 ml-2 text-purple-600" />
+                        <span className="text-sm font-medium">סטטיסטיקות</span>
+                      </Link>
+                      <Link href="/rules" className="flex items-center p-2 rounded-md hover:bg-muted">
+                        <HelpCircle className="h-5 w-5 ml-2 text-teal-600" />
+                        <span className="text-sm font-medium">חוקים ודירוג</span>
+                      </Link>
+                    </div>
+                  </div>
+                  
+                  <div className="border-t p-4">
+                    {isAdmin ? (
+                      <>
+                        <div className="space-y-3">
+                          <Link href="/admin" className="flex items-center p-2 rounded-md hover:bg-muted">
+                            <Settings className="h-5 w-5 ml-2 text-gray-600" />
+                            <span className="text-sm font-medium">לוח בקרה</span>
+                          </Link>
+                          <Button 
+                            variant="outline" 
+                            className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200"
+                            onClick={() => {
+                              logout();
+                              window.location.href = '/';
+                            }}
+                          >
+                            <LogOut className="h-4 w-4 ml-2" />
+                            <span>התנתק</span>
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <Link href="/login">
+                        <Button variant="outline" className="w-full justify-start text-blue-600 hover:text-blue-700 hover:bg-blue-50 border border-blue-200">
+                          <LogIn className="h-4 w-4 ml-2" />
+                          <span>התחבר כמנהל</span>
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </div>

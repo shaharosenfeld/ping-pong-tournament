@@ -20,7 +20,10 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
+  minimumScale: 1,
+  userScalable: true,
   themeColor: "#2563eb",
+  viewportFit: "cover",
 }
 
 export default function RootLayout({
@@ -30,7 +33,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="he" dir="rtl" suppressHydrationWarning>
-      <body className={`${inter.className} min-h-screen bg-gradient-to-b from-blue-50 via-white to-blue-50`}>
+      <body className={`${inter.className} min-h-screen bg-gradient-to-b from-blue-50 via-white to-blue-50 overflow-x-hidden`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
@@ -40,9 +43,9 @@ export default function RootLayout({
           <Providers>
             <div className="relative min-h-screen bg-background">
               <Navbar />
-              <div className="flex">
+              <div className="flex flex-col lg:flex-row">
                 <Sidebar />
-                <main className="flex-1 lg:mr-64">{children}</main>
+                <main className="flex-1 w-full p-4 pb-24 lg:p-6 lg:mr-64">{children}</main>
               </div>
             </div>
           </Providers>
