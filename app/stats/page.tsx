@@ -1009,7 +1009,7 @@ export default function StatsPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <div className="grid grid-cols-2 divide-x-2 divide-y-2 divide-gray-100">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 divide-y-2 sm:divide-x-2 sm:divide-y-2 divide-gray-100">
                     <div className="p-4 text-center">
                       <div className="text-3xl font-bold text-blue-600">
                         {players.reduce((acc, p) => acc + p.winRate, 0) / (players.length || 1)}%
