@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Trophy, Users, CheckCircle2, Gauge } from "lucide-react"
+import { Calendar, Trophy, Users, CheckCircle2, Gauge, MapPin, DollarSign, Medal } from "lucide-react"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -44,6 +44,8 @@ interface TournamentFormProps {
     groupCount?: string
     advanceCount?: string
     price?: string
+    firstPlacePrize?: string
+    secondPlacePrize?: string
     registrationOpen?: boolean
     registrationDeadline?: string
   }
@@ -101,6 +103,8 @@ export function TournamentForm({
     groupCount: initialData?.groupCount || "2",
     advanceCount: initialData?.advanceCount || "2",
     price: initialData?.price || "",
+    firstPlacePrize: initialData?.firstPlacePrize || "",
+    secondPlacePrize: initialData?.secondPlacePrize || "",
     registrationOpen: initialData?.registrationOpen || false,
     registrationDeadline: initialData?.registrationDeadline || ""
   })
@@ -363,7 +367,10 @@ export function TournamentForm({
           endDate: formData.endDate,
           location: formData.location,
           status: formData.status,
-          players: selectedPlayers
+          players: selectedPlayers,
+          price: formData.price === "" ? null : formData.price,
+          firstPlacePrize: formData.firstPlacePrize,
+          secondPlacePrize: formData.secondPlacePrize
         }
       } else {
         // In create mode, send all fields
@@ -456,16 +463,67 @@ export function TournamentForm({
               />
             </div>
 
-            <div className="flex flex-col space-y-1.5">
-              <Label htmlFor="location" className="text-blue-700">מיקום</Label>
-              <Input
-                id="location"
-                name="location"
-                value={formData.location}
-                onChange={handleChange}
-                placeholder="הזן את מיקום התחרות"
-                className="border-blue-200 focus:border-blue-400"
-              />
+            <div className="space-y-4">
+              <div className="flex flex-col space-y-1.5">
+                <Label htmlFor="location" className="text-blue-700">מיקום התחרות</Label>
+                <div className="relative">
+                  <MapPin className="absolute left-2.5 top-2.5 h-4 w-4 text-blue-500" />
+                  <Input
+                    id="location"
+                    name="location"
+                    placeholder="מיקום התחרות"
+                    value={formData.location}
+                    onChange={handleChange}
+                    className="pl-8 border-blue-200 focus:border-blue-400"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col space-y-1.5">
+                <Label htmlFor="price" className="text-blue-700">דמי השתתפות בש"ח</Label>
+                <div className="relative">
+                  <DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-blue-500" />
+                  <Input
+                    id="price"
+                    name="price"
+                    type="number"
+                    placeholder="דמי השתתפות"
+                    value={formData.price}
+                    onChange={handleChange}
+                    className="pl-8 border-blue-200 focus:border-blue-400"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col space-y-1.5">
+                <Label htmlFor="firstPlacePrize" className="text-blue-700">פרס מקום ראשון</Label>
+                <div className="relative">
+                  <Trophy className="absolute left-2.5 top-2.5 h-4 w-4 text-yellow-500" />
+                  <Input
+                    id="firstPlacePrize"
+                    name="firstPlacePrize"
+                    placeholder="פרס למקום ראשון"
+                    value={formData.firstPlacePrize}
+                    onChange={handleChange}
+                    className="pl-8 border-blue-200 focus:border-blue-400"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col space-y-1.5">
+                <Label htmlFor="secondPlacePrize" className="text-blue-700">פרס מקום שני</Label>
+                <div className="relative">
+                  <Medal className="absolute left-2.5 top-2.5 h-4 w-4 text-blue-500" />
+                  <Input
+                    id="secondPlacePrize"
+                    name="secondPlacePrize"
+                    placeholder="פרס למקום שני"
+                    value={formData.secondPlacePrize}
+                    onChange={handleChange}
+                    className="pl-8 border-blue-200 focus:border-blue-400"
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -500,21 +558,6 @@ export function TournamentForm({
                   />
                 </div>
               </div>
-            </div>
-
-            <div className="flex flex-col space-y-1.5">
-              <Label htmlFor="price" className="text-blue-700">מחיר השתתפות (ש״ח)</Label>
-              <Input
-                id="price"
-                name="price"
-                type="number"
-                min="0"
-                step="1"
-                value={formData.price}
-                onChange={handleChange}
-                placeholder="הזן את מחיר ההשתתפות בטורניר"
-                className="border-blue-200 focus:border-blue-400"
-              />
             </div>
 
             <div className="flex items-center space-x-4 space-x-reverse">

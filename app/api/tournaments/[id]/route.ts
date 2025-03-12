@@ -85,6 +85,23 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       endDate: body.endDate ? new Date(body.endDate) : existingTournament.endDate,
     }
     
+    // Only add these fields if they are explicitly provided, otherwise keep existing values
+    if (body.location !== undefined) {
+      updateData.location = body.location;
+    }
+
+    if (body.price !== undefined) {
+      updateData.price = body.price === "" ? null : parseFloat(body.price);
+    }
+
+    if (body.firstPlacePrize !== undefined) {
+      updateData.firstPlacePrize = body.firstPlacePrize;
+    }
+
+    if (body.secondPlacePrize !== undefined) {
+      updateData.secondPlacePrize = body.secondPlacePrize;
+    }
+    
     // בדיקה מיוחדת לעדכון סטטוס הטורניר
     if (body.status !== undefined) {
       // אם מנסים לעדכן את הסטטוס ל-completed, נבדוק שכל המשחקים הסתיימו
@@ -133,11 +150,6 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       
       // אם הכל תקין, עדכון הסטטוס
       updateData.status = body.status;
-    }
-
-    // Only add these fields if they are explicitly provided, otherwise keep existing values
-    if (body.location !== undefined) {
-      updateData.location = body.location;
     }
 
     // Start a transaction to handle all updates

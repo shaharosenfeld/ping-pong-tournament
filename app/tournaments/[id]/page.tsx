@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
-import { ArrowLeft, Calendar, Edit, MapPin, Plus, Trash2, Trophy, Users, Star, Award, Info } from "lucide-react"
+import { ArrowLeft, Calendar, Edit, MapPin, Plus, Trash2, Trophy, Users, Star, Award, Info, Medal } from "lucide-react"
 import {
   Dialog,
   DialogClose,
@@ -76,6 +76,9 @@ interface Tournament {
   updatedAt: Date
   location?: string
   winner?: string
+  price?: number | null
+  firstPlacePrize?: string | null
+  secondPlacePrize?: string | null
 }
 
 export default function TournamentPage({ params }: { params: Promise<{ id: string }> }) {
@@ -463,6 +466,43 @@ export default function TournamentPage({ params }: { params: Promise<{ id: strin
           </div>
         </CardContent>
       </Card>
+      
+      {/* Prize information section */}
+      {(tournament.price || tournament.firstPlacePrize || tournament.secondPlacePrize) && (
+        <Card className="border-2 border-blue-200 shadow-md hover:shadow-lg transition-all mt-4">
+          <CardHeader className="bg-gradient-to-r from-blue-100 to-blue-50 p-4 sm:p-6">
+            <CardTitle className="text-lg sm:text-xl text-blue-800">פרסים ותשלומים</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 p-4 sm:p-6">
+            {tournament.price ? (
+              <div className="border border-gray-100 rounded-lg bg-gray-50 p-4">
+                <p className="text-xs font-medium text-gray-500">דמי השתתפות</p>
+                <p className="text-sm font-semibold">{tournament.price} ₪</p>
+              </div>
+            ) : <div></div>}
+            
+            {tournament.secondPlacePrize ? (
+              <div className="border border-blue-200 rounded-lg bg-blue-50 p-4">
+                <p className="text-xs font-medium text-blue-600">מקום שני</p>
+                <div className="flex items-center gap-1.5 mt-1">
+                  <Medal className="h-4 w-4 text-blue-500" />
+                  <p className="text-md font-semibold text-blue-700">{tournament.secondPlacePrize}</p>
+                </div>
+              </div>
+            ) : <div></div>}
+            
+            {tournament.firstPlacePrize ? (
+              <div className="border-2 border-yellow-300 rounded-lg bg-yellow-50 p-4 shadow-md">
+                <p className="text-xs font-medium text-yellow-600">פרס גדול - מקום ראשון</p>
+                <div className="flex items-center gap-1.5 mt-1">
+                  <Trophy className="h-5 w-5 text-yellow-500" />
+                  <p className="text-lg font-bold text-yellow-700">{tournament.firstPlacePrize}</p>
+                </div>
+              </div>
+            ) : <div></div>}
+          </CardContent>
+        </Card>
+      )}
       
       <div className="mt-8">
         {!isAllGroupMatchesCompleted && tournament.format.includes('group') && (

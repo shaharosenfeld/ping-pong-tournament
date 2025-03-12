@@ -37,6 +37,8 @@ model Tournament {
   advanceCount Int?     // Number of players advancing from each group
   location     String?
   price        Float?   // מחיר השתתפות בטורניר
+  firstPlacePrize  String?  // פרס למקום ראשון
+  secondPlacePrize String?  // פרס למקום שני
   registrationOpen Boolean @default(false) // האם ההרשמה פתוחה
   registrationDeadline DateTime? // תאריך אחרון להרשמה
   players      Player[]

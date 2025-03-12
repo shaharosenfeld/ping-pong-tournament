@@ -21,6 +21,9 @@ interface Tournament {
   status: string
   location?: string
   players: { id: string }[]
+  price: number | null
+  firstPlacePrize: string | null
+  secondPlacePrize: string | null
 }
 
 export default function EditTournamentPage() {
@@ -118,6 +121,9 @@ export default function EditTournamentPage() {
               rounds: tournament.rounds.toString(),
               status: tournament.status,
               location: tournament.location || "",
+              price: tournament.price?.toString() || "",
+              firstPlacePrize: tournament.firstPlacePrize || "",
+              secondPlacePrize: tournament.secondPlacePrize || "",
               players: tournament.players.map(p => p.id)
             }}
             onSuccess={handleSuccess}
