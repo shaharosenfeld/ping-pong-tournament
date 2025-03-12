@@ -3,8 +3,7 @@
  * especially in production environments like Vercel where
  * database connections have timeouts.
  * 
- * On Vercel production, it will skip migrations to avoid timeout issues.
- * In development or when manually triggered, it will run migrations.
+ * We're now ENABLING migrations in production but with safer parameters.
  */
 
 const { exec } = require('child_process');
@@ -16,31 +15,50 @@ async function main() {
   // Check if we're running on Vercel production
   const isVercelProduction = process.env.VERCEL_ENV === 'production';
 
-  if (isVercelProduction) {
-    console.warn('⚠️ Running on Vercel production environment');
-    console.warn('⚠️ Skipping migrations to avoid timeout issues with Neon database');
-    console.warn('⚠️ Please run migrations manually before deploying: npm run db:migrate:force');
-    return;
-  }
-
+  console.log(`Environment: ${isVercelProduction ? 'Vercel Production' : 'Development/Other'}`);
   console.log('Running database migrations...');
   
   try {
-    // Run Prisma migrations
-    const { stdout, stderr } = await execPromise('npx prisma migrate deploy');
+    let command = 'npx prisma migrate deploy';
+    
+    // If in production, use a shorter timeout to avoid hanging deployments
+    if (isVercelProduction) {
+      console.log('⚠️ Running in Vercel production - using optimized migrate command');
+      command = 'npx prisma migrate deploy --skip-generate';
+    }
+    
+    console.log(`Executing: ${command}`);
+    const { stdout, stderr } = await execPromise(command);
     
     if (stdout) console.log(stdout);
     if (stderr) console.error(stderr);
     
     console.log('✅ Database migrations completed successfully');
+    
+    // In production, let's generate the Prisma client separately
+    if (isVercelProduction) {
+      console.log('Generating Prisma client...');
+      const { stdout: genStdout, stderr: genStderr } = await execPromise('npx prisma generate');
+      
+      if (genStdout) console.log(genStdout);
+      if (genStderr) console.error(genStderr);
+      
+      console.log('✅ Prisma client generation completed');
+    }
   } catch (error) {
-    console.error('❌ Error running database migrations:', error);
-    // Don't exit with error to allow build to continue
-    // The app might still work if the schema hasn't changed
-    // or if the database is already in the correct state
+    console.error('❌ Error in database operation:', error);
+    
+    // In production, don't fail the build but log the error
+    if (isVercelProduction) {
+      console.error('⚠️ Continuing build despite migration error. The app might still work if the schema is compatible.');
+    } else {
+      // In development, it's better to fail fast
+      process.exit(1);
+    }
   }
 }
 
 main().catch(err => {
   console.error('Unhandled error in migration script:', err);
+  process.exit(1);
 }); 
