@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Trophy, Table, Users, BarChart, ArrowUpRight, Calendar, Star } from "lucide-react"
+import { Trophy, Table, Users, BarChart, ArrowUpRight, Calendar, Star, Bot } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "@/components/ui/use-toast"
 import { useAuth } from "./hooks/use-auth"
@@ -351,7 +351,7 @@ export default function HomePage() {
               <div className="bg-white p-3 rounded-xl shadow-sm">
                 <div className="h-16 w-16 flex items-center justify-center">
                   <Image
-                    src="/placeholder-logo.svg"
+                    src="/paddlebot-logo.png"
                     alt="PaddleBot Logo"
                     width={60}
                     height={60}
