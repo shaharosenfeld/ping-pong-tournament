@@ -24,6 +24,8 @@ interface Tournament {
   price: number | null
   firstPlacePrize: string | null
   secondPlacePrize: string | null
+  registrationOpen: boolean
+  registrationDeadline: string | null
 }
 
 export default function EditTournamentPage() {
@@ -124,7 +126,9 @@ export default function EditTournamentPage() {
               price: tournament.price?.toString() || "",
               firstPlacePrize: tournament.firstPlacePrize || "",
               secondPlacePrize: tournament.secondPlacePrize || "",
-              players: tournament.players.map(p => p.id)
+              players: tournament.players.map(p => p.id),
+              registrationOpen: tournament.registrationOpen || false,
+              registrationDeadline: tournament.registrationDeadline || ""
             }}
             onSuccess={handleSuccess}
           />

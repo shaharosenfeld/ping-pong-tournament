@@ -165,6 +165,17 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       updateData.secondPlacePrize = body.secondPlacePrize;
     }
     
+    // הוספת טיפול בשדה registrationOpen
+    if (body.registrationOpen !== undefined) {
+      console.log("Updating registrationOpen:", body.registrationOpen);
+      updateData.registrationOpen = !!body.registrationOpen; // המרה לבוליאני
+    }
+    
+    // הוספת טיפול בשדה registrationDeadline
+    if (body.registrationDeadline !== undefined) {
+      updateData.registrationDeadline = body.registrationDeadline ? new Date(body.registrationDeadline) : null;
+    }
+    
     // בדיקה מיוחדת לעדכון סטטוס הטורניר
     if (body.status !== undefined) {
       // אם מנסים לעדכן את הסטטוס ל-completed, נבדוק שכל המשחקים הסתיימו

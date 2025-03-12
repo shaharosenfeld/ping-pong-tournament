@@ -348,7 +348,9 @@ export function TournamentForm({
           players: selectedPlayers,
           price: formData.price ? parseFloat(formData.price) : null,
           firstPlacePrize: formData.firstPlacePrize,
-          secondPlacePrize: formData.secondPlacePrize
+          secondPlacePrize: formData.secondPlacePrize,
+          registrationOpen: formData.registrationOpen,
+          registrationDeadline: formData.registrationDeadline
         }
       } else {
         // בדיקת הרשאות מנהל
