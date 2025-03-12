@@ -1,70 +1,19 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { sendNotification } from '@/lib/notification-utils';
-import { io } from 'socket.io-client';
-import nodemailer from 'nodemailer';
 
 const prisma = new PrismaClient();
 
 // פונקציה לשליחת התראה למנהל על הרשמה חדשה
 async function notifyAdmin(registration: any) {
   try {
-    // שליחת אימייל למנהל (אם מוגדר)
-    if (process.env.ADMIN_EMAIL) {
-      const transporter = nodemailer.createTransport({
-        host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-        port: parseInt(process.env.EMAIL_PORT || '587'),
-        secure: process.env.EMAIL_SECURE === 'true',
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASSWORD,
-        },
-      });
-
-      const tournament = await prisma.tournament.findUnique({
-        where: { id: registration.tournamentId },
-        select: { name: true },
-      });
-
-      await transporter.sendMail({
-        from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
-        to: process.env.ADMIN_EMAIL,
-        subject: `הרשמה חדשה לטורניר ${tournament?.name || registration.tournamentId}`,
-        html: `
-          <div dir="rtl">
-            <h2>הרשמה חדשה לטורניר</h2>
-            <p><strong>שם הטורניר:</strong> ${tournament?.name || 'לא ידוע'}</p>
-            <p><strong>שם הנרשם:</strong> ${registration.name}</p>
-            <p><strong>טלפון:</strong> ${registration.phone}</p>
-            <p><strong>דוא"ל:</strong> ${registration.email}</p>
-            <p><strong>אופן תשלום:</strong> ${registration.paymentMethod === 'bit' ? 'ביט' : 'מזומן'}</p>
-            <p><strong>סטטוס תשלום:</strong> ${registration.paymentStatus === 'pending' ? 'ממתין לאישור' : 'טרם שולם'}</p>
-            ${registration.paymentReference ? `<p><strong>אסמכתא:</strong> ${registration.paymentReference}</p>` : ''}
-            <p><strong>תאריך הרשמה:</strong> ${new Date(registration.registrationDate).toLocaleString('he-IL')}</p>
-            <hr />
-            <p>לאישור ההרשמה והוספת השחקן לטורניר, יש להיכנס למערכת הניהול.</p>
-          </div>
-        `,
-      });
-    }
-
-    // שליחת התראה למערכת ההתראות (לוח מחוונים)
-    // יש להגדיר את המנגנון הספציפי בהתאם לצורך
-    if (typeof sendNotification === 'function') {
-      await sendNotification({
-        type: 'registration',
-        title: 'הרשמה חדשה לטורניר',
-        message: `נרשם חדש: ${registration.name}`,
-        data: registration,
-      });
-    }
-
-    // ניסיון לשליחת התראה בזמן אמת באמצעות Socket.IO אם מוגדר
-    if (process.env.SOCKET_URL) {
-      const socket = io(process.env.SOCKET_URL);
-      socket.emit('new-registration', registration);
-      socket.disconnect();
-    }
+    // שליחת התראה למערכת ההתראות
+    await sendNotification({
+      type: 'registration',
+      title: 'הרשמה חדשה לטורניר',
+      message: `נרשם חדש: ${registration.name}`,
+      data: registration,
+    });
 
     console.log(`Admin notification sent for registration: ${registration.id}`);
   } catch (error) {
@@ -105,34 +54,25 @@ export async function POST(request: Request) {
     }
 
     // בדיקה אם כבר קיימת הרשמה עם אותו דוא"ל או טלפון
-    const existingRegistration = await prisma.tournamentRegistration.findFirst({
-      where: {
-        tournamentId: body.tournamentId,
-        OR: [
-          { email: body.email },
-          { phone: body.phone }
-        ]
-      }
-    });
-
-    if (existingRegistration) {
-      return NextResponse.json(
-        { error: 'כבר קיימת הרשמה עם פרטים אלו לטורניר זה' },
-        { status: 400 }
-      );
-    }
-
-    // יצירת רשומת הרשמה
+    const whereClause = {
+      tournamentId: body.tournamentId,
+      OR: [
+        { email: body.email },
+        { phone: body.phone }
+      ]
+    };
+    
+    // יצירת רשומת הרשמה - נגדיר את המבנה שלה בהתאם למה שקיים ב-Prisma
     const registration = await prisma.tournamentRegistration.create({
       data: {
+        tournamentId: body.tournamentId,
         name: body.name,
         email: body.email,
         phone: body.phone,
-        tournamentId: body.tournamentId,
         paymentMethod: body.paymentMethod || 'bit',
         paymentStatus: body.paymentStatus || 'pending',
         paymentReference: body.paymentReference || null,
-        registrationDate: body.registrationDate || new Date().toISOString(),
+        registrationDate: new Date(),
         isApproved: false,
       },
     });
@@ -170,15 +110,15 @@ export async function GET(request: Request) {
     }
 
     // פיצול לשאילתת חיפוש
-    let whereClause: any = {};
+    let whereClause = {};
     
     if (tournamentId) {
-      whereClause.tournamentId = tournamentId;
+      whereClause = { tournamentId };
     }
 
     const registrations = await prisma.tournamentRegistration.findMany({
       where: whereClause,
-      orderBy: { registrationDate: 'desc' },
+      orderBy: { createdAt: 'desc' },
     });
 
     return NextResponse.json(registrations);
@@ -225,29 +165,41 @@ export async function PUT(request: Request) {
     }
 
     // עדכון פרטי ההרשמה
+    const updateData = {};
+    
+    if (isApproved !== undefined) {
+      updateData.isApproved = isApproved;
+    }
+    
+    if (paymentStatus) {
+      updateData.paymentStatus = paymentStatus;
+    }
+    
     const updatedRegistration = await prisma.tournamentRegistration.update({
       where: { id },
-      data: {
-        isApproved: isApproved !== undefined ? isApproved : registration.isApproved,
-        paymentStatus: paymentStatus || registration.paymentStatus,
-      },
+      data: updateData,
     });
 
     // אם אושרה ההרשמה, יוצרים שחקן חדש או מוסיפים קיים לטורניר
     if (isApproved === true && !registration.isApproved) {
       // בדיקה אם השחקן כבר קיים לפי המייל או הטלפון
-      let player = await prisma.player.findFirst({
-        where: {
-          OR: [
-            { email: registration.email },
-            { phone: registration.phone }
-          ]
-        }
+      const playerWhereClause = {
+        OR: [
+          { email: registration.email },
+          { phone: registration.phone }
+        ]
+      };
+      
+      const existingPlayer = await prisma.player.findFirst({
+        where: playerWhereClause,
       });
 
+      // מזהה השחקן - או קיים או חדש שיווצר
+      let playerId;
+
       // אם השחקן לא קיים, יוצרים שחקן חדש
-      if (!player) {
-        player = await prisma.player.create({
+      if (!existingPlayer) {
+        const newPlayer = await prisma.player.create({
           data: {
             name: registration.name,
             email: registration.email,
@@ -255,6 +207,9 @@ export async function PUT(request: Request) {
             rating: 1000, // דירוג התחלתי
           },
         });
+        playerId = newPlayer.id;
+      } else {
+        playerId = existingPlayer.id;
       }
 
       // בדיקה אם השחקן כבר בטורניר
@@ -263,7 +218,7 @@ export async function PUT(request: Request) {
           id: registration.tournamentId,
           players: {
             some: {
-              id: player.id
+              id: playerId
             }
           }
         }
@@ -275,7 +230,7 @@ export async function PUT(request: Request) {
           where: { id: registration.tournamentId },
           data: {
             players: {
-              connect: { id: player.id }
+              connect: { id: playerId }
             }
           }
         });

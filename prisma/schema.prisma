@@ -49,52 +49,52 @@ model Tournament {
 }
 
 model Player {
-  id           String        @id @default(uuid())
-  name         String
-  email        String?
-  phone        String?
-  avatar       String?      // URL to profile image
-  initials     String?      // For avatar fallback
-  level        Int          @default(3)  // 1-5 scale
-  bio          String?      // Player description
-  rating       Int          @default(1000)  // ELO rating
-  wins         Int          @default(0)
-  losses       Int          @default(0)
-  tournaments  Tournament[]
-  matchesAsP1  Match[]      @relation("Player1")
-  matchesAsP2  Match[]      @relation("Player2")
-  registrations TournamentRegistration[]
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  id        String   @id @default(uuid())
+  name      String
+  email     String?
+  phone     String?
+  avatar    String?
+  level     Int      @default(1)
+  bio       String?
+  rating    Int      @default(1000)
+  wins      Int      @default(0)
+  losses    Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  tournaments     Tournament[]
+  matchesAsPlayer1 Match[]     @relation("Player1")
+  matchesAsPlayer2 Match[]     @relation("Player2")
 }
 
 model Match {
-  id           String     @id @default(uuid())
-  tournament   Tournament @relation(fields: [tournamentId], references: [id])
+  id          String    @id @default(uuid())
   tournamentId String
-  player1      Player     @relation("Player1", fields: [player1Id], references: [id])
-  player1Id    String
-  player2      Player     @relation("Player2", fields: [player2Id], references: [id])
-  player2Id    String
+  tournament  Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  
+  player1Id   String
+  player2Id   String
+  player1     Player    @relation("Player1", fields: [player1Id], references: [id])
+  player2     Player    @relation("Player2", fields: [player2Id], references: [id])
+  
   player1Score Int?
   player2Score Int?
-  player1Game1Score Int?
-  player2Game1Score Int?
-  player1Game2Score Int?
-  player2Game2Score Int?
-  player1Game3Score Int?
-  player2Game3Score Int?
-  player1Wins      Int     @default(0)  // Number of games won by player1
-  player2Wins      Int     @default(0)  // Number of games won by player2
-  currentGame      Int     @default(1)  // Current game number (1, 2, or 3)
-  round        Int        @default(1)  // Added round field for league format
-  stage        String?    // group, knockout, final, etc.
-  groupName    String?    // For group stage matches (e.g., "Group A")
-  status       String     @default("scheduled") // scheduled, in_progress, completed
-  date         DateTime?
-  bestOfThree  Boolean    @default(false) // האם המשחק הוא בשיטת הטוב מ-3
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  
+  round       Int       @default(1)
+  status      String    @default("scheduled") // scheduled, in_progress, completed
+  
+  date        DateTime?
+  
+  stage       String?   // group, knockout
+  groupName   String?   // for group stage matches
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([tournamentId])
+  @@index([player1Id])
+  @@index([player2Id])
 }
 
 model Notification {
@@ -108,20 +108,29 @@ model Notification {
 }
 
 model TournamentRegistration {
-  id           String    @id @default(uuid())
-  tournament   Tournament @relation(fields: [tournamentId], references: [id])
-  tournamentId String
-  player       Player    @relation(fields: [playerId], references: [id])
-  playerId     String
-  userEmail    String    // Email of user who registered
-  userName     String    // Name of user who registered
-  paymentStatus String   @default("pending") // pending, completed, failed, refunded
-  paymentAmount Float
-  paymentDate  DateTime?
-  paymentId    String?   // External payment identifier
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  @@unique([tournamentId, playerId])
+  id               String    @id @default(cuid())
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  
+  // פרטי המשתמש שנרשם
+  name             String
+  email            String
+  phone            String
+  
+  // קישור לטורניר
+  tournamentId     String
+  tournament       Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  
+  // פרטי תשלום
+  paymentMethod    String    @default("bit") // bit, cash, etc
+  paymentStatus    String    @default("pending") // pending, paid, failed, etc
+  paymentReference String?
+  registrationDate DateTime  @default(now())
+  
+  // סטטוס אישור מנהל
+  isApproved       Boolean   @default(false)
+  
+  @@index([tournamentId])
+  @@index([email, phone])
 }
 
