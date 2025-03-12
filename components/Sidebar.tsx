@@ -163,6 +163,7 @@ export function Sidebar() {
                 <Link
                   key={tournament.id}
                   href={`/tournaments/${tournament.id}`}
+                  onClick={() => setIsOpen(false)}
                   className="flex items-center rounded-md px-2 py-1.5 text-sm hover:bg-muted"
                 >
                   <Trophy className="h-4 w-4 ml-2" />
@@ -178,7 +179,7 @@ export function Sidebar() {
             <div className="text-sm text-muted-foreground py-2">אין טורנירים פעילים כרגע</div>
           )}
           <div className="mt-2">
-            <Link href="/tournaments">
+            <Link href="/tournaments" onClick={() => setIsOpen(false)}>
               <Button variant="ghost" size="sm" className="w-full justify-start">
                 <Plus className="h-4 w-4 ml-2" />
                 הצג את כל הטורנירים
@@ -201,6 +202,7 @@ export function Sidebar() {
                 <Link
                   key={player.id}
                   href={`/players/${player.id}`}
+                  onClick={() => setIsOpen(false)}
                   className="flex items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-muted"
                 >
                   <div className="flex items-center">
@@ -228,7 +230,7 @@ export function Sidebar() {
             <div className="text-sm text-muted-foreground py-2">אין נתוני שחקנים זמינים</div>
           )}
           <div className="mt-2">
-            <Link href="/players">
+            <Link href="/players" onClick={() => setIsOpen(false)}>
               <Button variant="ghost" size="sm" className="w-full justify-start">
                 <Plus className="h-4 w-4 ml-2" />
                 הצג את כל השחקנים
@@ -241,19 +243,19 @@ export function Sidebar() {
         <div className="px-4 py-2">
           <h2 className="text-lg font-semibold tracking-tight mb-2">כלים מהירים</h2>
           <div className="grid gap-2">
-            <Link href="/tournaments/new">
+            <Link href="/tournaments/new" onClick={() => setIsOpen(false)}>
               <Button variant="outline" className="w-full justify-start">
                 <Trophy className="h-4 w-4 ml-2" />
                 צור טורניר חדש
               </Button>
             </Link>
-            <Link href="/stats">
+            <Link href="/stats" onClick={() => setIsOpen(false)}>
               <Button variant="outline" className="w-full justify-start">
                 <BarChart className="h-4 w-4 ml-2" />
                 צפה בסטטיסטיקות
               </Button>
             </Link>
-            <Link href="/rules">
+            <Link href="/rules" onClick={() => setIsOpen(false)}>
               <Button variant="outline" className="w-full justify-start">
                 <HelpCircle className="h-4 w-4 ml-2" />
                 חוקי הטורניר
@@ -276,7 +278,7 @@ export function Sidebar() {
 
   // בתצוגת מובייל - שימוש ב-Sheet מספריית UI שמופעל על ידי כפתור
   return (
-    <Sheet>
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
         <Button 
           variant="outline" 

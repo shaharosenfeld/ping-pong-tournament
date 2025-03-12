@@ -341,8 +341,11 @@ export default function HomePage() {
               מעקב אחר התקדמות השחקנים, דירוגים והישגים לאורך זמן
             </p>
           </div>
-          
-          <div className="p-5 md:p-6 rounded-2xl bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950 dark:to-yellow-900 sm:col-span-2 lg:col-span-3">
+        </div>
+        
+        {/* PaddleBot Section */}
+        <div className="mt-6 px-4 md:px-0">
+          <div className="p-5 md:p-6 rounded-2xl bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950 dark:to-yellow-900">
             <div className="flex flex-col sm:flex-row items-center gap-4">
               <div className="bg-white p-3 rounded-xl shadow-sm">
                 <div className="h-12 w-12 flex items-center justify-center text-xl font-bold text-blue-600 border-2 border-blue-200 rounded-lg">

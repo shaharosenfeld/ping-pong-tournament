@@ -84,20 +84,22 @@ export default function RulesPage() {
         <h1 className="text-4xl font-bold text-center text-blue-800 mb-8">חוקי הדירוג ושיטות משחק</h1>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid grid-cols-3 max-w-lg mx-auto">
-            <TabsTrigger value="rating" className="flex items-center gap-1">
-              <Star className="h-4 w-4" />
-              <span>שיטת הדירוג</span>
-            </TabsTrigger>
-            <TabsTrigger value="tournaments" className="flex items-center gap-1">
-              <Trophy className="h-4 w-4" />
-              <span>סוגי טורנירים</span>
-            </TabsTrigger>
-            <TabsTrigger value="rules" className="flex items-center gap-1">
-              <BadgeInfo className="h-4 w-4" />
-              <span>חוקי המשחק</span>
-            </TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto pb-2">
+            <TabsList className="w-full md:w-auto flex md:inline-flex">
+              <TabsTrigger value="rating" className="flex items-center gap-1">
+                <Star className="h-4 w-4" />
+                <span>שיטת הדירוג</span>
+              </TabsTrigger>
+              <TabsTrigger value="tournaments" className="flex items-center gap-1">
+                <Trophy className="h-4 w-4" />
+                <span>סוגי טורנירים</span>
+              </TabsTrigger>
+              <TabsTrigger value="rules" className="flex items-center gap-1">
+                <BadgeInfo className="h-4 w-4" />
+                <span>חוקי המשחק</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
           
           {/* שיטת הדירוג */}
           <TabsContent value="rating" className="space-y-6">
