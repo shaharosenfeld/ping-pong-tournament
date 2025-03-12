@@ -267,7 +267,7 @@ export default function StatsPage() {
       </div>
 
       <Tabs defaultValue="players" className="w-full">
-        <TabsList>
+        <TabsList className="w-full grid grid-cols-2 md:grid-cols-4 md:w-auto md:inline-flex">
           <TabsTrigger value="players">שחקנים מובילים</TabsTrigger>
           <TabsTrigger value="tournaments">טורנירים אחרונים</TabsTrigger>
           <TabsTrigger value="matches">נתוני משחקים</TabsTrigger>
@@ -541,7 +541,11 @@ export default function StatsPage() {
                             cx="50%"
                             cy="50%"
                             labelLine={false}
-                            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                            label={({ name, percent }) => 
+                              window.innerWidth < 768 
+                                ? `${(percent * 100).toFixed(0)}%` 
+                                : `${name}: ${(percent * 100).toFixed(0)}%`
+                            }
                             outerRadius={80}
                             fill="#8884d8"
                             dataKey="value"

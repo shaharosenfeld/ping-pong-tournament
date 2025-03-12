@@ -7,12 +7,13 @@ import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "../hooks/use-auth"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Plus, Trophy, Users, Edit, Trash2, Table } from "lucide-react"
+import { ArrowLeft, Plus, Trophy, Users, Edit, Trash2, Table, PlusCircle, CalendarDays } from "lucide-react"
 import Link from "next/link"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog"
 import { useRouter } from "next/navigation"
 import { getImageUrl } from "@/lib/utils"
+import { Progress } from "@/components/ui/progress"
 
 interface Player {
   id: string
@@ -45,6 +46,9 @@ interface Tournament {
   status: string
   players: Player[]
   matches: Match[]
+  startDate: string
+  completedMatches: number
+  totalMatches: number
 }
 
 export default function TournamentsPage() {

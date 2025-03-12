@@ -75,6 +75,7 @@ interface Tournament {
   createdAt: Date
   updatedAt: Date
   location?: string
+  winner?: string
 }
 
 export default function TournamentPage({ params }: { params: Promise<{ id: string }> }) {
@@ -267,6 +268,11 @@ export default function TournamentPage({ params }: { params: Promise<{ id: strin
     }
   }
 
+  const getWinnerName = (winnerId: string | undefined) => {
+    const winner = tournament.players.find(p => p.id === winnerId)
+    return winner?.name || "לא ידוע"
+  }
+
   return (
     <div dir="rtl" className="container mx-auto py-6 space-y-6">
       <ConfettiEffect 
@@ -276,20 +282,19 @@ export default function TournamentPage({ params }: { params: Promise<{ id: strin
         onComplete={() => setShowConfetti(false)}
       />
       
-      <div className="flex items-center gap-2">
-        <Link href="/tournaments">
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span>חזרה</span>
-          </Button>
-        </Link>
-        <h1 className="text-2xl font-bold tracking-tight text-blue-700">{tournament.name}</h1>
-        {getStatusBadge(tournament.status)}
-        
+      <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between mb-6 gap-4">
+        <div>
+          <h1 className="text-xl sm:text-3xl font-bold">{tournament.name}</h1>
+          <div className="flex items-center gap-2 mt-1">
+            {getStatusBadge(tournament.status)}
+            {tournament.status === "completed" && tournament.winner && (
+              <Badge variant="outline" className="bg-yellow-100 text-yellow-800 gap-1">
+                <Trophy className="h-3 w-3" />
+                {getWinnerName(tournament.winner)}
+              </Badge>
+            )}
+          </div>
+        </div>
         <div className="ml-auto flex items-center gap-2">
           {isAdmin && (
             <>
@@ -421,36 +426,37 @@ export default function TournamentPage({ params }: { params: Promise<{ id: strin
       </div>
 
       <Card className="border-2 border-blue-200 shadow-md hover:shadow-lg transition-all">
-        <CardHeader className="bg-gradient-to-r from-blue-100 to-blue-50">
-          <CardTitle className="text-xl text-blue-800">פרטי הטורניר</CardTitle>
+        <CardHeader className="bg-gradient-to-r from-blue-100 to-blue-50 p-4 sm:p-6">
+          <CardTitle className="text-lg sm:text-xl text-blue-800">פרטי הטורניר</CardTitle>
           <CardDescription className="text-blue-600">{tournament.description}</CardDescription>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
+        <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 p-4 sm:p-6">
           <div className="flex items-center gap-2 text-blue-700">
-            <Calendar className="h-4 w-4 text-blue-500" />
-            <span>
+            <Calendar className="h-4 w-4 text-blue-500 flex-shrink-0" />
+            <span className="text-sm sm:text-base">
               {new Date(tournament.startDate).toLocaleDateString("he-IL")} -{" "}
               {tournament.endDate ? new Date(tournament.endDate).toLocaleDateString("he-IL") : "לא נקבע"}
             </span>
           </div>
           <div className="flex items-center gap-2 text-blue-700">
-            <MapPin className="h-4 w-4 text-blue-500" />
-            <span>{tournament.location || "לא צוין מיקום"}</span>
+            <MapPin className="h-4 w-4 text-blue-500 flex-shrink-0" />
+            <span className="text-sm sm:text-base truncate">{tournament.location || "לא צוין מיקום"}</span>
           </div>
           <div className="flex items-center gap-2 text-blue-700">
-            <Trophy className="h-4 w-4 text-blue-500" />
-            <span>{getFormatLabel(tournament.format)}</span>
+            <Trophy className="h-4 w-4 text-blue-500 flex-shrink-0" />
+            <span className="text-sm sm:text-base">{getFormatLabel(tournament.format)}</span>
           </div>
           <div className="flex items-center gap-2 text-blue-700 md:col-span-3">
-            <Users className="h-4 w-4 text-blue-500" />
-            <span>
+            <Users className="h-4 w-4 text-blue-500 flex-shrink-0" />
+            <span className="text-sm sm:text-base">
               {tournament.players.length} / 8 שחקנים
             </span>
             {tournament.players.length < 8 && tournament.status !== "completed" && isAdmin && (
               <Link href={`/tournaments/${id}/players/add`} className="mr-auto">
                 <Button size="sm" variant="outline" className="gap-1 border-blue-300 text-blue-700 hover:bg-blue-100">
                   <Plus className="h-3.5 w-3.5" />
-                  הוסף שחקנים
+                  <span className="hidden sm:inline">הוסף שחקנים</span>
+                  <span className="sm:hidden">הוסף</span>
                 </Button>
               </Link>
             )}
@@ -473,7 +479,7 @@ export default function TournamentPage({ params }: { params: Promise<{ id: strin
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2 lg:w-auto lg:inline-flex">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:w-auto lg:inline-flex">
             <TabsTrigger value="matches">משחקים</TabsTrigger>
             <TabsTrigger value="players">שחקנים</TabsTrigger>
             <TabsTrigger value="standings">טבלה</TabsTrigger>

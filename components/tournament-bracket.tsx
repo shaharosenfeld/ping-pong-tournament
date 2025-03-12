@@ -763,3 +763,107 @@ function GroupsKnockoutBracket({ tournament }: { tournament: any }) {
   );
 }
 
+// Helper function to get player by ID
+function getPlayerById(playerId: string, players: any[]) {
+  const player = players.find((p: any) => p.id === playerId);
+  return player || {
+    id: playerId,
+    name: "Unknown Player",
+    initials: "UP",
+    avatar: null,
+    level: 0,
+    score: 0
+  };
+}
+
+// Bracket match display component - make more mobile-friendly
+function BracketMatch({ match, players, isFinal = false }: any) {
+  const player1 = getPlayerById(match.player1Id, players);
+  const player2 = getPlayerById(match.player2Id, players);
+  const completed = match.status === 'completed';
+  const winner = match.player1Score > match.player2Score ? 1 : match.player2Score > match.player1Score ? 2 : 0;
+
+  // Ensure safe image URL handling
+  const ensureValidImageUrl = (url: string | undefined) => {
+    if (!url) return '/placeholder-user.jpg';
+    return getImageUrl(url);
+  };
+
+  return (
+    <Card className={cn(
+      "w-full mb-2 transition-all duration-300 hover:shadow-md",
+      isFinal ? "border-yellow-300 bg-yellow-50" : "",
+      !completed ? "border-dashed" : ""
+    )}>
+      <CardContent className="p-2 sm:p-3">
+        {/* Top player - more compact mobile view */}
+        <div className={cn(
+          "flex items-center p-1 sm:p-2 rounded-md",
+          completed && winner === 1 ? "bg-green-100" : "",
+          !completed ? "opacity-90" : ""
+        )}>
+          <div className="relative flex-shrink-0">
+            <Avatar className="h-5 w-5 sm:h-8 sm:w-8 border border-blue-100">
+              {player1.avatar ? (
+                <AvatarImage src={ensureValidImageUrl(player1.avatar)} alt={player1.name} />
+              ) : (
+                <AvatarFallback className="text-[9px] sm:text-xs">{player1.initials || player1.name.charAt(0)}</AvatarFallback>
+              )}
+            </Avatar>
+            {player1.level && player1.level > 0 && (
+              <div className="absolute -bottom-1 -right-1 bg-blue-500 text-white w-3 h-3 text-[8px] rounded-full flex items-center justify-center border border-white">
+                {player1.level}
+              </div>
+            )}
+          </div>
+          <div className="flex items-center justify-between flex-1 ml-2">
+            <div className="text-xs sm:text-sm font-medium truncate max-w-[70px] sm:max-w-[150px]">
+              {player1.name}
+            </div>
+            {completed && <div className="font-bold text-xs sm:text-sm">{player1.score}</div>}
+          </div>
+        </div>
+        
+        <div className="text-center text-[9px] sm:text-xs text-muted-foreground my-0.5 sm:my-2">vs</div>
+        
+        {/* Bottom player - more compact mobile view */}
+        <div className={cn(
+          "flex items-center p-1 sm:p-2 rounded-md",
+          completed && winner === 2 ? "bg-green-100" : "",
+          !completed ? "opacity-90" : ""
+        )}>
+          <div className="relative flex-shrink-0">
+            <Avatar className="h-5 w-5 sm:h-8 sm:w-8 border border-blue-100">
+              {player2.avatar ? (
+                <AvatarImage src={ensureValidImageUrl(player2.avatar)} alt={player2.name} />
+              ) : (
+                <AvatarFallback className="text-[9px] sm:text-xs">{player2.initials || player2.name.charAt(0)}</AvatarFallback>
+              )}
+            </Avatar>
+            {player2.level && player2.level > 0 && (
+              <div className="absolute -bottom-1 -right-1 bg-blue-500 text-white w-3 h-3 text-[8px] rounded-full flex items-center justify-center border border-white">
+                {player2.level}
+              </div>
+            )}
+          </div>
+          <div className="flex items-center justify-between flex-1 ml-2">
+            <div className="text-xs sm:text-sm font-medium truncate max-w-[70px] sm:max-w-[150px]">
+              {player2.name}
+            </div>
+            {completed && <div className="font-bold text-xs sm:text-sm">{player2.score}</div>}
+          </div>
+        </div>
+
+        {/* Match status */}
+        {isFinal && (
+          <div className="mt-1 sm:mt-2 flex justify-center">
+            <Badge variant="outline" className="bg-yellow-100 text-yellow-800 text-[9px] sm:text-xs px-1 sm:px-2">
+              <Trophy className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-0.5 sm:mr-1" /> גמר
+            </Badge>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
