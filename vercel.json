@@ -7,5 +7,5 @@
   "env": {
     "PRISMA_MIGRATE_SKIP_GENERATE": "false"
   },
-  "regions": ["gcp-us-central1"]
+  "regions": ["iad1"]
 } 
