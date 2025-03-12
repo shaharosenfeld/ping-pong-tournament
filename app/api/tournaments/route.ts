@@ -224,105 +224,120 @@ export async function POST(request: Request) {
       location
     } = body
 
-    if (!name || !startDate || !players || players.length === 0) {
+    if (!name || !startDate) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'שם הטורניר ותאריך התחלה הם שדות חובה' },
         { status: 400 }
       )
     }
 
-    // Create tournament with players
+    // Create tournament with players if provided
+    const tournamentData: any = {
+      name,
+      description,
+      startDate: new Date(startDate),
+      endDate: endDate ? new Date(endDate) : null,
+      format: format || 'knockout',
+      maxPlayers: maxPlayers ? parseInt(maxPlayers) : 8,
+      rounds: rounds ? parseInt(rounds) : 1,
+      status: status || 'draft',
+      location,
+      registrationOpen: body.registrationOpen || false,
+      registrationDeadline: body.registrationDeadline ? new Date(body.registrationDeadline) : null,
+      bitPaymentPhone: body.bitPaymentPhone || null,
+      bitPaymentName: body.bitPaymentName || null,
+      price: body.price ? parseFloat(body.price) : null,
+      firstPlacePrize: body.firstPlacePrize || null,
+      secondPlacePrize: body.secondPlacePrize || null,
+      groupCount: format === 'groups_knockout' ? parseInt(groupCount || '2') : null,
+      advanceCount: format === 'groups_knockout' ? parseInt(advanceCount || '2') : null,
+    }
+    
+    // Check if players array exists and is not empty before adding player connections
+    if (players && players.length > 0) {
+      tournamentData.players = {
+        connect: players.map((playerId: string) => ({ id: playerId }))
+      }
+    }
+    
     const tournament = await prisma.tournament.create({
-      data: {
-        name,
-        description,
-        startDate: new Date(startDate),
-        endDate: endDate ? new Date(endDate) : null,
-        format: format || 'knockout',
-        maxPlayers: maxPlayers ? parseInt(maxPlayers) : 8,
-        rounds: rounds ? parseInt(rounds) : 1,
-        status: status || 'draft',
-        location,
-        groupCount: format === 'groups_knockout' ? parseInt(groupCount || '2') : null,
-        advanceCount: format === 'groups_knockout' ? parseInt(advanceCount || '2') : null,
-        players: {
-          connect: players.map((playerId: string) => ({ id: playerId }))
-        }
-      },
+      data: tournamentData,
       include: {
         players: true
       }
     })
 
-    // Generate and create matches
+    // Generate and create matches only if we have players
     let matches = []
     
-    if (matchGenerationMode === 'manual' && manualMatches && manualMatches.length > 0) {
-      // Use manually defined matches
-      matches = manualMatches.map((match: { player1Id: string, player2Id: string }) => ({
-        tournamentId: tournament.id,
-        player1Id: match.player1Id,
-        player2Id: match.player2Id,
-        round: 1,
-        status: 'scheduled',
-        date: new Date(Date.now() + 24 * 60 * 60 * 1000) // Schedule for tomorrow
-      }))
-    } else if (format === 'groups_knockout' && groupAssignments) {
-      // For groups_knockout format with manual group assignments
-      
-      // Create group stage matches based on the group assignments
-      Object.entries(groupAssignments as Record<string, string[]>).forEach(([groupName, groupPlayers]) => {
-        // Each player plays against every other player in their group
-        for (let i = 0; i < groupPlayers.length; i++) {
-          for (let j = i + 1; j < groupPlayers.length; j++) {
-            matches.push({
-              tournamentId: tournament.id,
-              player1Id: groupPlayers[i],
-              player2Id: groupPlayers[j],
-              round: 1,
-              status: 'scheduled',
-              stage: 'group',
-              groupName,
-              date: new Date(Date.now() + 24 * 60 * 60 * 1000)
-            })
+    if (players && players.length > 0) {
+      if (matchGenerationMode === 'manual' && manualMatches && manualMatches.length > 0) {
+        // Use manually defined matches
+        matches = manualMatches.map((match: { player1Id: string, player2Id: string }) => ({
+          tournamentId: tournament.id,
+          player1Id: match.player1Id,
+          player2Id: match.player2Id,
+          round: 1,
+          status: 'scheduled',
+          date: new Date(Date.now() + 24 * 60 * 60 * 1000) // Schedule for tomorrow
+        }))
+      } else if (format === 'groups_knockout' && groupAssignments) {
+        // For groups_knockout format with manual group assignments
+        
+        // Create group stage matches based on the group assignments
+        Object.entries(groupAssignments as Record<string, string[]>).forEach(([groupName, groupPlayers]) => {
+          // Each player plays against every other player in their group
+          for (let i = 0; i < groupPlayers.length; i++) {
+            for (let j = i + 1; j < groupPlayers.length; j++) {
+              matches.push({
+                tournamentId: tournament.id,
+                player1Id: groupPlayers[i],
+                player2Id: groupPlayers[j],
+                round: 1,
+                status: 'scheduled',
+                stage: 'group',
+                groupName,
+                date: new Date(Date.now() + 24 * 60 * 60 * 1000)
+              })
+            }
           }
-        }
-      });
-    } else {
-      // Generate matches automatically
-      matches = await generateMatches(
-        tournament.id, 
-        players, 
-        format || 'knockout', 
-        rounds ? parseInt(rounds) : 1,
-        groupCount ? parseInt(groupCount) : 2,
-        advanceCount ? parseInt(advanceCount) : 2,
-        groupAssignments as Record<string, string[]> | undefined
-      )
-    }
-    
-    if (matches.length > 0) {
-      try {
-        await prisma.match.createMany({
-          data: matches
-        })
-      } catch (error) {
-        console.error('Error creating matches:', error)
-        // Delete the tournament if match creation fails
-        await prisma.tournament.delete({
-          where: { id: tournament.id }
-        })
-        return NextResponse.json(
-          { error: 'Failed to create matches' },
-          { status: 500 }
+        });
+      } else {
+        // Generate matches automatically
+        matches = await generateMatches(
+          tournament.id, 
+          players, 
+          format || 'knockout', 
+          rounds ? parseInt(rounds) : 1,
+          groupCount ? parseInt(groupCount) : 2,
+          advanceCount ? parseInt(advanceCount) : 2,
+          groupAssignments as Record<string, string[]> | undefined
         )
+      }
+      
+      if (matches.length > 0) {
+        try {
+          await prisma.match.createMany({
+            data: matches
+          })
+        } catch (error) {
+          console.error('Error creating matches:', error)
+          // Delete the tournament if match creation fails
+          await prisma.tournament.delete({
+            where: { id: tournament.id }
+          })
+          return NextResponse.json(
+            { error: 'Failed to create matches' },
+            { status: 500 }
+          )
+        }
       }
     }
 
     // Create notification for new tournament
     await createNotification({
       title: 'טורניר חדש נוצר',
-      message: `טורניר חדש "${name}" נוצר עם ${players.length} שחקנים`,
+      message: `טורניר חדש "${name}" נוצר ${players && players.length > 0 ? `עם ${players.length} שחקנים` : 'ללא שחקנים'}`,
       type: 'tournament'
     })
 
