@@ -39,6 +39,8 @@ model Tournament {
   price        Float?   // מחיר השתתפות בטורניר
   firstPlacePrize  String?  // פרס למקום ראשון
   secondPlacePrize String?  // פרס למקום שני
+  bitPaymentPhone  String?  // מספר טלפון לתשלום באמצעות ביט
+  bitPaymentName   String?  // שם המוטב לתשלום ביט
   registrationOpen Boolean @default(false) // האם ההרשמה פתוחה
   registrationDeadline DateTime? // תאריך אחרון להרשמה
   players      Player[]
