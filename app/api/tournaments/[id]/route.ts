@@ -91,7 +91,15 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     }
 
     if (body.price !== undefined) {
-      updateData.price = body.price === "" ? null : parseFloat(body.price);
+      console.log("Tournament price update:", body.price, typeof body.price);
+      if (body.price === "" || body.price === null) {
+        updateData.price = null;
+      } else if (typeof body.price === 'number') {
+        updateData.price = body.price;
+      } else {
+        updateData.price = parseFloat(body.price);
+      }
+      console.log("Parsed price:", updateData.price);
     }
 
     if (body.firstPlacePrize !== undefined) {

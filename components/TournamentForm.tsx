@@ -252,112 +252,27 @@ export function TournamentForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (isSubmitting) return
-    
     setIsSubmitting(true)
     
     try {
-      // בדיקת הרשאות מנהל
-      if (!isAdmin) {
+      // Validate min number of players for tournament
+      if (selectedPlayers.length < 2) {
         toast({
           title: "שגיאה",
-          description: "אין לך הרשאות מנהל לביצוע פעולה זו",
+          description: "חייב לבחור לפחות 2 שחקנים",
           variant: "destructive",
         })
         setIsSubmitting(false)
         return
       }
       
-      // Validate form
-      if (!formData.name || !formData.startDate || selectedPlayers.length === 0) {
-        toast({
-          title: "שגיאה",
-          description: "יש למלא את כל השדות הנדרשים",
-          variant: "destructive",
-        })
-        setIsSubmitting(false)
-        return
-      }
+      let apiData
       
-      // Validate manual matches if that mode is selected
-      if (mode === 'create' && matchGenerationMode === 'manual' && manualMatches.length === 0) {
-        toast({
-          title: "שגיאה",
-          description: "יש להגדיר לפחות משחק אחד בהגרלה ידנית",
-          variant: "destructive",
-        })
-        setIsSubmitting(false)
-        return
-      }
+      console.log("TournamentForm: מגיש נתונים", { mode, formData })
       
-      // Validate that all players are included in at least one match when using manual match generation
-      if (mode === 'create' && matchGenerationMode === 'manual' && manualMatches.length > 0) {
-        const playersInMatches = new Set<string>();
-        
-        manualMatches.forEach(match => {
-          playersInMatches.add(match.player1Id);
-          playersInMatches.add(match.player2Id);
-        });
-        
-        const missingPlayers = selectedPlayers.filter(playerId => !playersInMatches.has(playerId));
-        
-        if (missingPlayers.length > 0) {
-          const missingPlayerNames = missingPlayers.map(id => 
-            players.find(p => p.id === id)?.name || 'שחקן לא ידוע'
-          ).join(', ');
-          
-          toast({
-            title: "שגיאה",
-            description: `ישנם שחקנים שלא משובצים לאף משחק: ${missingPlayerNames}`,
-            variant: "destructive",
-          });
-          setIsSubmitting(false);
-          return;
-        }
-      }
-      
-      // Validate group assignments for groups_knockout format
-      if (mode === 'create' && formData.format === 'groups_knockout') {
-        // Check if all players are assigned to a group
-        const assignedPlayers = new Set<string>();
-        Object.values(groupAssignments).forEach(group => {
-          group.forEach(playerId => assignedPlayers.add(playerId));
-        });
-        
-        const unassignedPlayers = selectedPlayers.filter(playerId => !assignedPlayers.has(playerId));
-        
-        if (unassignedPlayers.length > 0) {
-          const unassignedPlayerNames = unassignedPlayers.map(id => 
-            players.find(p => p.id === id)?.name || 'שחקן לא ידוע'
-          ).join(', ');
-          
-          toast({
-            title: "שגיאה",
-            description: `ישנם שחקנים שלא משובצים לאף בית: ${unassignedPlayerNames}`,
-            variant: "destructive",
-          });
-          setIsSubmitting(false);
-          return;
-        }
-        
-        // Check if any group is empty
-        const emptyGroups = Object.entries(groupAssignments)
-          .filter(([_, players]) => players.length === 0)
-          .map(([name, _]) => name);
-        
-        if (emptyGroups.length > 0) {
-          toast({
-            title: "שגיאה",
-            description: `ישנם בתים ריקים: ${emptyGroups.join(', ')}`,
-            variant: "destructive",
-          });
-          setIsSubmitting(false);
-          return;
-        }
-      }
-      
-      // Prepare data for API
-      let apiData = {}
+      // Debug auth
+      const authToken = localStorage.getItem('adminToken');
+      console.log("TournamentForm: טוקן אימות", authToken);
       
       if (mode === 'edit') {
         // In edit mode, only send fields that should be editable
@@ -368,12 +283,111 @@ export function TournamentForm({
           location: formData.location,
           status: formData.status,
           players: selectedPlayers,
-          price: formData.price === "" ? null : formData.price,
+          price: formData.price ? parseFloat(formData.price) : null,
           firstPlacePrize: formData.firstPlacePrize,
           secondPlacePrize: formData.secondPlacePrize
         }
       } else {
-        // In create mode, send all fields
+        // בדיקת הרשאות מנהל
+        if (!isAdmin) {
+          toast({
+            title: "שגיאה",
+            description: "אין לך הרשאות מנהל לביצוע פעולה זו",
+            variant: "destructive",
+          })
+          setIsSubmitting(false)
+          return
+        }
+        
+        // Validate form
+        if (!formData.name || !formData.startDate || selectedPlayers.length === 0) {
+          toast({
+            title: "שגיאה",
+            description: "יש למלא את כל השדות הנדרשים",
+            variant: "destructive",
+          })
+          setIsSubmitting(false)
+          return
+        }
+        
+        // Validate manual matches if that mode is selected
+        if (mode === 'create' && matchGenerationMode === 'manual' && manualMatches.length === 0) {
+          toast({
+            title: "שגיאה",
+            description: "יש להגדיר לפחות משחק אחד בהגרלה ידנית",
+            variant: "destructive",
+          })
+          setIsSubmitting(false)
+          return
+        }
+        
+        // Validate that all players are included in at least one match when using manual match generation
+        if (mode === 'create' && matchGenerationMode === 'manual' && manualMatches.length > 0) {
+          const playersInMatches = new Set<string>();
+          
+          manualMatches.forEach(match => {
+            playersInMatches.add(match.player1Id);
+            playersInMatches.add(match.player2Id);
+          });
+          
+          const missingPlayers = selectedPlayers.filter(playerId => !playersInMatches.has(playerId));
+          
+          if (missingPlayers.length > 0) {
+            const missingPlayerNames = missingPlayers.map(id => 
+              players.find(p => p.id === id)?.name || 'שחקן לא ידוע'
+            ).join(', ');
+            
+            toast({
+              title: "שגיאה",
+              description: `ישנם שחקנים שלא משובצים לאף משחק: ${missingPlayerNames}`,
+              variant: "destructive",
+            });
+            setIsSubmitting(false);
+            return;
+          }
+        }
+        
+        // Validate group assignments for groups_knockout format
+        if (mode === 'create' && formData.format === 'groups_knockout') {
+          // Check if all players are assigned to a group
+          const assignedPlayers = new Set<string>();
+          Object.values(groupAssignments).forEach(group => {
+            group.forEach(playerId => assignedPlayers.add(playerId));
+          });
+          
+          const unassignedPlayers = selectedPlayers.filter(playerId => !assignedPlayers.has(playerId));
+          
+          if (unassignedPlayers.length > 0) {
+            const unassignedPlayerNames = unassignedPlayers.map(id => 
+              players.find(p => p.id === id)?.name || 'שחקן לא ידוע'
+            ).join(', ');
+            
+            toast({
+              title: "שגיאה",
+              description: `ישנם שחקנים שלא משובצים לאף בית: ${unassignedPlayerNames}`,
+              variant: "destructive",
+            });
+            setIsSubmitting(false);
+            return;
+          }
+          
+          // Check if any group is empty
+          const emptyGroups = Object.entries(groupAssignments)
+            .filter(([_, players]) => players.length === 0)
+            .map(([name, _]) => name);
+          
+          if (emptyGroups.length > 0) {
+            toast({
+              title: "שגיאה",
+              description: `ישנם בתים ריקים: ${emptyGroups.join(', ')}`,
+              variant: "destructive",
+            });
+            setIsSubmitting(false);
+            return;
+          }
+        }
+        
+        // Prepare data for API
         apiData = {
           ...formData,
           players: selectedPlayers,

@@ -33,13 +33,24 @@ const store: StateCreator<AuthState> = (set) => ({
     set({ isLoading: true })
     
     try {
-      if (password === '8891') {
+      // שליחת בקשה לאימות לשרת במקום בדיקה מקומית
+      const response = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ password })
+      })
+      
+      const data = await response.json()
+      
+      if (response.ok && data.success) {
         // Store in localStorage with try-catch to handle private browsing issues
         try {
           localStorage.setItem('isAuthenticated', 'true')
           localStorage.setItem('isAdmin', 'true')
           localStorage.setItem('adminName', 'מנהל המערכת')
-          localStorage.setItem('adminToken', 'admin-8891') // Add token storage
+          localStorage.setItem('adminToken', data.token) // שימוש בטוקן מהשרת
         } catch (e) {
           console.error('Failed to store auth in localStorage:', e)
         }
