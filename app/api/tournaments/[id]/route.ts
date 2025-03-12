@@ -439,14 +439,21 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     
     console.log('DELETE /api/tournaments/[id]: Authentication successful, proceeding with deletion');
     
-    // First delete all matches associated with this tournament
+    // מחיקת כל הרישומים לטורניר (TournamentRegistration) קודם
+    await prisma.tournamentRegistration.deleteMany({
+      where: { tournamentId: id }
+    });
+    
+    console.log('DELETE /api/tournaments/[id]: Deleted associated registrations');
+
+    // מחיקת כל המשחקים הקשורים לטורניר
     await prisma.match.deleteMany({
       where: { tournamentId: id }
     });
     
     console.log('DELETE /api/tournaments/[id]: Deleted associated matches');
 
-    // Then delete the tournament
+    // ולבסוף מחיקת הטורניר עצמו
     await prisma.tournament.delete({
       where: { id }
     });
