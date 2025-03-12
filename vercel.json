@@ -1,6 +1,8 @@
 {
   "version": 2,
   "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "framework": "nextjs",
   "installCommand": "npm install",
   "builds": [
     {
@@ -9,6 +11,6 @@
     }
   ],
   "env": {
-    "PRISMA_SKIP_MIGRATE_IN_PRODUCTION": "true"
+    "PRISMA_MIGRATE_SKIP_GENERATE": "true"
   }
 } 

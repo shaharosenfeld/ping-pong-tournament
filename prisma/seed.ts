@@ -38,24 +38,49 @@ async function main() {
     })
   ])
 
-  // Create tournament
-  const tournament = await prisma.tournament.create({
-    data: {
-      name: 'טורניר האביב',
-      description: 'טורניר פינג פונג לכבוד האביב',
-      startDate: new Date(),
-      status: 'active',
-      players: {
-        connect: players.map(player => ({ id: player.id }))
+  // Create tournaments
+  const tournaments = await Promise.all([
+    prisma.tournament.create({
+      data: {
+        name: 'טורניר אליפות קיץ 2023',
+        description: 'טורניר האליפות השנתי',
+        startDate: new Date('2023-07-10T10:00:00'),
+        endDate: new Date('2023-07-11T18:00:00'),
+        format: 'knockout',
+        maxPlayers: 8,
+        status: 'completed',
+        price: 50,
+        registrationOpen: false,
+        registrationDeadline: new Date('2023-07-05T23:59:59'),
+        players: {
+          connect: players.map(player => ({ id: player.id }))
+        }
       }
-    }
-  })
+    }),
+    prisma.tournament.create({
+      data: {
+        name: 'ליגת חורף 2023',
+        description: 'ליגת חורף שבועית',
+        startDate: new Date('2023-12-01T18:00:00'),
+        format: 'league',
+        rounds: 2,
+        maxPlayers: 10,
+        status: 'active',
+        price: 75,
+        registrationOpen: true,
+        registrationDeadline: new Date('2023-11-25T23:59:59'),
+        players: {
+          connect: players.map(player => ({ id: player.id }))
+        }
+      }
+    })
+  ])
 
   // Create matches
   await Promise.all([
     prisma.match.create({
       data: {
-        tournamentId: tournament.id,
+        tournamentId: tournaments[0].id,
         player1Id: players[0].id,
         player2Id: players[1].id,
         status: 'scheduled',
@@ -64,7 +89,7 @@ async function main() {
     }),
     prisma.match.create({
       data: {
-        tournamentId: tournament.id,
+        tournamentId: tournaments[0].id,
         player1Id: players[1].id,
         player2Id: players[2].id,
         status: 'scheduled',
