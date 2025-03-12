@@ -479,14 +479,16 @@ export default function TournamentPage({ params }: { params: Promise<{ id: strin
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:w-auto lg:inline-flex">
-            <TabsTrigger value="matches">משחקים</TabsTrigger>
-            <TabsTrigger value="players">שחקנים</TabsTrigger>
-            <TabsTrigger value="standings">טבלה</TabsTrigger>
-            {tournament && tournament.status === "completed" && (
-              <TabsTrigger value="results">דירוג</TabsTrigger>
-            )}
-          </TabsList>
+          <div className="overflow-x-auto pb-2">
+            <TabsList className="w-full md:w-auto flex md:inline-flex">
+              <TabsTrigger value="matches">משחקים</TabsTrigger>
+              <TabsTrigger value="players">שחקנים</TabsTrigger>
+              <TabsTrigger value="standings">טבלה</TabsTrigger>
+              {tournament && tournament.status === "completed" && (
+                <TabsTrigger value="results">דירוג</TabsTrigger>
+              )}
+            </TabsList>
+          </div>
 
           <TabsContent value="matches" className="space-y-4">
             <div className="flex justify-between items-center">

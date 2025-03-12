@@ -267,12 +267,14 @@ export default function StatsPage() {
       </div>
 
       <Tabs defaultValue="players" className="w-full">
-        <TabsList className="w-full grid grid-cols-2 md:grid-cols-4 md:w-auto md:inline-flex">
-          <TabsTrigger value="players">שחקנים מובילים</TabsTrigger>
-          <TabsTrigger value="tournaments">טורנירים אחרונים</TabsTrigger>
-          <TabsTrigger value="matches">נתוני משחקים</TabsTrigger>
-          <TabsTrigger value="rankings">דירוג השחקנים</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto pb-2">
+          <TabsList className="w-full md:w-auto flex md:inline-flex">
+            <TabsTrigger value="players">שחקנים מובילים</TabsTrigger>
+            <TabsTrigger value="tournaments">טורנירים אחרונים</TabsTrigger>
+            <TabsTrigger value="matches">נתוני משחקים</TabsTrigger>
+            <TabsTrigger value="rankings">דירוג השחקנים</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="players" className="space-y-6">
           {topPlayers.length > 0 ? (

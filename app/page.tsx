@@ -334,12 +334,28 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="p-5 md:p-6 rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950 dark:to-emerald-900 sm:col-span-2 lg:col-span-1">
+          <div className="p-5 md:p-6 rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950 dark:to-emerald-900">
             <Users className="h-10 w-10 md:h-12 md:w-12 text-emerald-600 dark:text-emerald-400 mb-3 md:mb-4" />
             <h3 className="text-lg md:text-xl font-semibold mb-2">ניהול שחקנים</h3>
             <p className="text-muted-foreground text-sm md:text-base">
               מעקב אחר התקדמות השחקנים, דירוגים והישגים לאורך זמן
             </p>
+          </div>
+          
+          <div className="p-5 md:p-6 rounded-2xl bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950 dark:to-yellow-900 sm:col-span-2 lg:col-span-3">
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <div className="bg-white p-3 rounded-xl shadow-sm">
+                <div className="h-12 w-12 flex items-center justify-center text-xl font-bold text-blue-600 border-2 border-blue-200 rounded-lg">
+                  PaddleBot
+                </div>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg md:text-xl font-semibold mb-2 text-center sm:text-right">עוזר חכם לניהול טורנירים</h3>
+                <p className="text-muted-foreground text-sm md:text-base text-center sm:text-right">
+                  הכירו את ה-PaddleBot, המסייע בארגון טורנירים, הגרלת משחקים והמלצות לשיבוץ שחקנים
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>

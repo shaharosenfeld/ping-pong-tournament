@@ -12,7 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { useEffect, useState } from "react"
 import { useAuth } from "@/app/hooks/use-auth"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet"
 
 type Notification = {
   id: string
@@ -319,7 +319,7 @@ export function Navbar() {
             )}
 
             {/* Mobile Menu Button - Only visible on mobile */}
-            <Sheet>
+            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="outline" size="icon" className="md:hidden">
                   <Menu className="h-5 w-5" />
@@ -335,27 +335,27 @@ export function Navbar() {
                   </div>
                   <div className="flex-1 overflow-auto py-2">
                     <div className="space-y-1 px-2">
-                      <Link href="/" className="flex items-center p-2 rounded-md hover:bg-muted">
+                      <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center p-2 rounded-md hover:bg-muted">
                         <Home className="h-5 w-5 ml-2 text-blue-600" />
                         <span className="text-sm font-medium">דף הבית</span>
                       </Link>
-                      <Link href="/tournaments" className="flex items-center p-2 rounded-md hover:bg-muted">
+                      <Link href="/tournaments" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center p-2 rounded-md hover:bg-muted">
                         <Trophy className="h-5 w-5 ml-2 text-yellow-600" />
                         <span className="text-sm font-medium">תחרויות</span>
                       </Link>
-                      <Link href="/matches" className="flex items-center p-2 rounded-md hover:bg-muted">
+                      <Link href="/matches" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center p-2 rounded-md hover:bg-muted">
                         <TableIcon className="h-5 w-5 ml-2 text-green-600" />
                         <span className="text-sm font-medium">משחקים</span>
                       </Link>
-                      <Link href="/players" className="flex items-center p-2 rounded-md hover:bg-muted">
+                      <Link href="/players" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center p-2 rounded-md hover:bg-muted">
                         <Users className="h-5 w-5 ml-2 text-indigo-600" />
                         <span className="text-sm font-medium">שחקנים</span>
                       </Link>
-                      <Link href="/stats" className="flex items-center p-2 rounded-md hover:bg-muted">
+                      <Link href="/stats" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center p-2 rounded-md hover:bg-muted">
                         <BarChart className="h-5 w-5 ml-2 text-purple-600" />
                         <span className="text-sm font-medium">סטטיסטיקות</span>
                       </Link>
-                      <Link href="/rules" className="flex items-center p-2 rounded-md hover:bg-muted">
+                      <Link href="/rules" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center p-2 rounded-md hover:bg-muted">
                         <HelpCircle className="h-5 w-5 ml-2 text-teal-600" />
                         <span className="text-sm font-medium">חוקים ודירוג</span>
                       </Link>
@@ -366,7 +366,7 @@ export function Navbar() {
                     {isAdmin ? (
                       <>
                         <div className="space-y-3">
-                          <Link href="/admin" className="flex items-center p-2 rounded-md hover:bg-muted">
+                          <Link href="/admin" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center p-2 rounded-md hover:bg-muted">
                             <Settings className="h-5 w-5 ml-2 text-gray-600" />
                             <span className="text-sm font-medium">לוח בקרה</span>
                           </Link>
@@ -374,6 +374,7 @@ export function Navbar() {
                             variant="outline" 
                             className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200"
                             onClick={() => {
+                              setIsMobileMenuOpen(false);
                               logout();
                               window.location.href = '/';
                             }}
@@ -384,7 +385,7 @@ export function Navbar() {
                         </div>
                       </>
                     ) : (
-                      <Link href="/login">
+                      <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
                         <Button variant="outline" className="w-full justify-start text-blue-600 hover:text-blue-700 hover:bg-blue-50 border border-blue-200">
                           <LogIn className="h-4 w-4 ml-2" />
                           <span>התחבר כמנהל</span>
