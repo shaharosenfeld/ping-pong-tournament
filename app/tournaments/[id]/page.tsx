@@ -87,14 +87,14 @@ export default function TournamentPage() {
   
   // יצירת קישור ביט שיכלול את כל הפרטים הנדרשים
   const generateBitPaymentLink = () => {
-    if (!tournament || !tournament.bitPaymentPhone || !tournament.price) return null;
+    if (!tournament) return null;
+    if (!tournament.bitPaymentPhone || !tournament.price) return null;
     
-    // ניקוי מספר הטלפון מתווים מיוחדים
+    // וידוא שמספר הטלפון נקי מתווים מיוחדים
     const cleanPhone = tournament.bitPaymentPhone.replace(/[-\s]/g, '');
     
-    // יצירת הקישור לביט לפי המבנה החדש
-    // קישור ישיר לאפליקציית ביט שעובד בכל הפלטפורמות
-    const paymentURL = `https://www.bit.co.il/he-il/pay?phone=${encodeURIComponent(cleanPhone)}&amount=${encodeURIComponent(tournament.price)}&description=${encodeURIComponent(tournament.bitPaymentName || `הרשמה לטורניר ${tournament.name}`)}`;
+    // יצירת קישור תקין לביט באמצעות URL מתאים
+    const paymentURL = `https://www.bitpay.co.il/he/pay/${cleanPhone}/${tournament.price}/${encodeURIComponent(tournament.bitPaymentName || `הרשמה לטורניר ${tournament.name}`)}`;
     
     return paymentURL;
   }

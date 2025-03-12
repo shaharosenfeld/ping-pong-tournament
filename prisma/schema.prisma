@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -24,77 +18,69 @@ model User {
 }
 
 model Tournament {
-  id           String   @id @default(uuid())
-  name         String
-  description  String?
-  startDate    DateTime
-  endDate      DateTime?
-  status       String   @default("draft") // draft, active, completed
-  format       String   @default("knockout") // knockout, league, groups_knockout
-  maxPlayers   Int      @default(8)
-  rounds       Int      @default(1) // 1 for single, 2 for double (used in both knockout and league formats)
-  groupCount   Int?     // Number of groups for groups_knockout format
-  advanceCount Int?     // Number of players advancing from each group
-  location     String?
-  price        Float?   // מחיר השתתפות בטורניר
-  firstPlacePrize  String?  // פרס למקום ראשון
-  secondPlacePrize String?  // פרס למקום שני
-  bitPaymentPhone  String?  // מספר טלפון לתשלום באמצעות ביט
-  bitPaymentName   String?  // שם המוטב לתשלום ביט
-  registrationOpen Boolean @default(false) // האם ההרשמה פתוחה
-  registrationDeadline DateTime? // תאריך אחרון להרשמה
-  players      Player[]
-  matches      Match[]
-  registrations TournamentRegistration[]
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                   String                   @id @default(uuid())
+  name                 String
+  description          String?
+  startDate            DateTime
+  endDate              DateTime?
+  status               String                   @default("draft")
+  format               String                   @default("knockout")
+  maxPlayers           Int                      @default(8)
+  rounds               Int                      @default(1)
+  groupCount           Int?
+  advanceCount         Int?
+  location             String?
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+  price                Float?
+  registrationDeadline DateTime?
+  registrationOpen     Boolean                  @default(false)
+  bitPaymentName       String?
+  bitPaymentPhone      String?
+  firstPlacePrize      String?
+  secondPlacePrize     String?
+  matches              Match[]
+  registrations        TournamentRegistration[]
+  players              Player[]                 @relation("PlayerToTournament")
 }
 
 model Player {
-  id        String   @id @default(uuid())
-  name      String
-  email     String?
-  phone     String?
-  avatar    String?
-  level     Int      @default(1)
-  bio       String?
-  rating    Int      @default(1000)
-  wins      Int      @default(0)
-  losses    Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  tournaments     Tournament[]
-  matchesAsPlayer1 Match[]     @relation("Player1")
-  matchesAsPlayer2 Match[]     @relation("Player2")
-  registrations   TournamentRegistration[]
+  id               String                   @id @default(uuid())
+  name             String
+  email            String?
+  phone            String?
+  avatar           String?
+  level            Int                      @default(1)
+  bio              String?
+  rating           Int                      @default(1000)
+  wins             Int                      @default(0)
+  losses           Int                      @default(0)
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+  matchesAsPlayer1 Match[]                  @relation("Player1")
+  matchesAsPlayer2 Match[]                  @relation("Player2")
+  registrations    TournamentRegistration[]
+  tournaments      Tournament[]             @relation("PlayerToTournament")
 }
 
 model Match {
-  id          String    @id @default(uuid())
+  id           String     @id @default(uuid())
   tournamentId String
-  tournament  Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  
-  player1Id   String
-  player2Id   String
-  player1     Player    @relation("Player1", fields: [player1Id], references: [id])
-  player2     Player    @relation("Player2", fields: [player2Id], references: [id])
-  
+  player1Id    String
+  player2Id    String
   player1Score Int?
   player2Score Int?
-  
-  round       Int       @default(1)
-  status      String    @default("scheduled") // scheduled, in_progress, completed
-  
-  date        DateTime?
-  
-  stage       String?   // group, knockout
-  groupName   String?   // for group stage matches
-  
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
+  round        Int        @default(1)
+  stage        String?
+  groupName    String?
+  status       String     @default("scheduled")
+  date         DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  player1      Player     @relation("Player1", fields: [player1Id], references: [id])
+  player2      Player     @relation("Player2", fields: [player2Id], references: [id])
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
   @@index([tournamentId])
   @@index([player1Id])
   @@index([player2Id])
@@ -104,41 +90,30 @@ model Notification {
   id        String   @id @default(uuid())
   title     String
   message   String
-  type      String   // tournament, match, player, system
+  type      String
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model TournamentRegistration {
-  id               String    @id @default(cuid())
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  
-  // פרטי המשתמש שנרשם
-  name             String
-  email            String
-  phone            String
-  
-  // קישור לטורניר
+  id               String     @id @default(cuid())
   tournamentId     String
-  tournament       Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  
-  // קישור לשחקן
   playerId         String
-  player           Player     @relation(fields: [playerId], references: [id])
-  
-  // פרטי תשלום
-  paymentMethod    String    @default("bit") // bit, cash, etc
-  paymentStatus    String    @default("pending") // pending, paid, failed, etc
+  paymentStatus    String     @default("pending")
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  email            String
+  isApproved       Boolean    @default(false)
+  name             String
+  paymentMethod    String     @default("bit")
   paymentReference String?
-  registrationDate DateTime  @default(now())
-  
-  // סטטוס אישור מנהל
-  isApproved       Boolean   @default(false)
-  
+  phone            String
+  registrationDate DateTime   @default(now())
+  player           Player     @relation(fields: [playerId], references: [id])
+  tournament       Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, playerId])
   @@index([tournamentId])
   @@index([email, phone])
-  @@unique([tournamentId, playerId])
 }
-

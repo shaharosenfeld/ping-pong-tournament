@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { getAuthHeaders } from '@/lib/admin-utils'
-import { CheckCircle, XCircle } from 'lucide-react'
+import { CheckCircle, XCircle, DollarSign } from 'lucide-react'
 
 interface Registration {
   id: string
@@ -148,6 +148,50 @@ export function TournamentRegistrations({ tournamentId, isAdmin, onRegistrations
     }
   }
 
+  const updatePaymentStatus = async (registrationId: string, paymentStatus: string) => {
+    try {
+      const headers = getAuthHeaders()
+      
+      const response = await fetch(`/api/tournaments/${tournamentId}/registrations/${registrationId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(headers instanceof Headers ? 
+            Object.fromEntries([...headers.entries()]) : 
+            headers)
+        },
+        body: JSON.stringify({ paymentStatus })
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to update payment status: ${response.statusText}`)
+      }
+
+      toast({
+        title: 'הצלחה',
+        description: `סטטוס התשלום עודכן ל${paymentStatus === 'paid' ? 'שולם' : 'לא שולם'} בהצלחה`,
+      })
+
+      // עדכון מקומי של הרשימה
+      setRegistrations(prev =>
+        prev.map(reg => 
+          reg.id === registrationId ? { ...reg, paymentStatus } : reg
+        )
+      )
+
+      if (onRegistrationsChange) {
+        onRegistrationsChange()
+      }
+    } catch (error) {
+      console.error('Error updating payment status:', error)
+      toast({
+        title: 'שגיאה',
+        description: 'אירעה שגיאה בעדכון סטטוס התשלום',
+        variant: 'destructive',
+      })
+    }
+  }
+
   useEffect(() => {
     loadRegistrations()
   }, [tournamentId])
@@ -204,6 +248,7 @@ export function TournamentRegistrations({ tournamentId, isAdmin, onRegistrations
                           variant="ghost"
                           size="sm"
                           onClick={() => updateApprovalStatus(registration.id, true)}
+                          title="אשר הרשמה"
                         >
                           <CheckCircle className="h-4 w-4 text-green-600" />
                         </Button>
@@ -213,8 +258,29 @@ export function TournamentRegistrations({ tournamentId, isAdmin, onRegistrations
                           variant="ghost"
                           size="sm"
                           onClick={() => updateApprovalStatus(registration.id, false)}
+                          title="בטל אישור"
                         >
                           <XCircle className="h-4 w-4 text-red-600" />
+                        </Button>
+                      )}
+                      {registration.paymentStatus !== 'paid' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => updatePaymentStatus(registration.id, 'paid')}
+                          title="סמן כשולם"
+                        >
+                          <DollarSign className="h-4 w-4 text-blue-600" />
+                        </Button>
+                      )}
+                      {registration.paymentStatus === 'paid' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => updatePaymentStatus(registration.id, 'pending')}
+                          title="בטל סימון תשלום"
+                        >
+                          <DollarSign className="h-4 w-4 text-gray-400" />
                         </Button>
                       )}
                     </div>

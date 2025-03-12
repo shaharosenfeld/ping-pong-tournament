@@ -25,13 +25,24 @@ export async function PATCH(
     
     // קבלת נתוני העדכון מהבקשה
     const body = await request.json();
-    const { isApproved } = body;
+    const { isApproved, paymentStatus } = body;
     
-    if (isApproved === undefined) {
+    if (isApproved === undefined && paymentStatus === undefined) {
       return NextResponse.json(
-        { error: 'Missing isApproved field' },
+        { error: 'Missing isApproved or paymentStatus field' },
         { status: 400 }
       );
+    }
+    
+    // הכנת אובייקט עם נתוני העדכון
+    const updateData: any = {};
+    
+    if (isApproved !== undefined) {
+      updateData.isApproved = !!isApproved;
+    }
+    
+    if (paymentStatus !== undefined) {
+      updateData.paymentStatus = paymentStatus;
     }
     
     // עדכון הרישום
@@ -40,13 +51,20 @@ export async function PATCH(
         id: registrationId,
         tournamentId: tournamentId
       },
-      data: {
-        isApproved: !!isApproved
-      },
+      data: updateData,
       include: {
         player: true
       }
     });
+    
+    // אם אישרנו רישום, מוסיפים אימייל לתור שליחה
+    if (isApproved === true && updatedRegistration.isApproved) {
+      // לוגיקה לשליחת אימייל אישור הרשמה
+      console.log(`Registration ${registrationId} approved - should send email to ${updatedRegistration.email}`);
+      
+      // כאן ניתן להוסיף לוגיקה לשליחת מייל, כגון:
+      // await sendApprovalEmail(updatedRegistration);
+    }
     
     return NextResponse.json({
       success: true,

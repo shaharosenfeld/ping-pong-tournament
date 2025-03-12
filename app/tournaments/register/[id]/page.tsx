@@ -143,18 +143,13 @@ export default function RegisterPage() {
       
       toast({
         title: "ההרשמה הצליחה",
-        description: "נרשמת בהצלחה לטורניר! אם נדרש תשלום, ניתן לשלם דרך ביט",
+        description: "נרשמת בהצלחה! אישור ההרשמה יישלח למייל לאחר אישור ידני ע\"י המנהל.",
       });
       
-      // אם יש קישור תשלום ביט - פותח אותו אוטומטית
-      const bitPaymentLink = generateBitPaymentLink();
-      if (bitPaymentLink) {
-        window.open(bitPaymentLink, '_blank');
-      }
-      
+      // אם יש קישור תשלום ביט - לא פותח אותו אוטומטית אלא מציג כפתור
       setTimeout(() => {
         router.push(`/tournaments/${tournamentId}`);
-      }, 2000);
+      }, 3500);
     } catch (error) {
       console.error('Error submitting registration:', error);
       toast({
@@ -171,8 +166,11 @@ export default function RegisterPage() {
   const generateBitPaymentLink = () => {
     if (!tournament || !tournament.bitPaymentPhone || !tournament.price) return null;
     
+    // וידוא שמספר הטלפון נקי מתווים מיוחדים
     const cleanPhone = tournament.bitPaymentPhone.replace(/[-\s]/g, '');
-    const paymentURL = `https://www.bit.co.il/he-il/pay?phone=${encodeURIComponent(cleanPhone)}&amount=${encodeURIComponent(tournament.price)}&description=${encodeURIComponent(tournament.bitPaymentName || `הרשמה לטורניר ${tournament.name}`)}`;
+    
+    // יצירת קישור תקין לביט באמצעות URL מתאים
+    const paymentURL = `https://www.bitpay.co.il/he/pay/${cleanPhone}/${tournament.price}/${encodeURIComponent(tournament.bitPaymentName || `הרשמה לטורניר ${tournament.name}`)}`;
     
     return paymentURL;
   }
@@ -277,6 +275,15 @@ export default function RegisterPage() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+                
+                <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 text-sm">
+                  <p className="font-medium mb-1">⚠️ חשוב לדעת:</p>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>אישור ההרשמה יישלח למייל לאחר אישור ידני ע"י מנהל הטורניר</li>
+                    <li>לאחר ההרשמה, יש לבצע תשלום דרך ביט לפי ההנחיות</li>
+                    <li>בכל שאלה או בעיה, ניתן לפנות למנהל הטורניר</li>
+                  </ul>
                 </div>
               </div>
             )}

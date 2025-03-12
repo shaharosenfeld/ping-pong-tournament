@@ -112,9 +112,24 @@ async function main() {
         const date = match.date ? new Date(match.date) : null
         
         try {
+          // מסנן שדות לא נדרשים ממבנה המשחק
+          const { 
+            currentGame, 
+            player1Game1Score, 
+            player1Game2Score, 
+            player1Game3Score, 
+            player2Game1Score, 
+            player2Game2Score, 
+            player2Game3Score,
+            bestOfThree,
+            player1Wins,
+            player2Wins,
+            ...matchData 
+          } = match;
+
           await prisma.match.create({
             data: {
-              ...match,
+              ...matchData,
               createdAt,
               updatedAt,
               date
@@ -138,6 +153,8 @@ async function main() {
           await prisma.notification.create({
             data: {
               ...notification,
+              // המרת שדה read ממספר לבוליאני
+              read: notification.read === 1 ? true : false,
               createdAt,
               updatedAt
             }
