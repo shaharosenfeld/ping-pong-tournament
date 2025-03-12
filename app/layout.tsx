@@ -14,6 +14,11 @@ export const metadata: Metadata = {
   title: "טורניר פינג פונג מקצועי",
   description: "מערכת ניהול טורנירי פינג פונג מתקדמת עם תצוגה דינמית ואינטראקטיבית",
   keywords: "פינג פונג, טורניר, ספורט, ניהול טורנירים, טניס שולחן",
+  icons: {
+    icon: "/paddlebot-logo.png",
+    apple: "/paddlebot-logo.png",
+    shortcut: "/paddlebot-logo.png"
+  },
 }
 
 export const viewport: Viewport = {
