@@ -204,11 +204,11 @@ export default function RegisterPage() {
     // וידוא שמספר הטלפון נקי מתווים מיוחדים
     const cleanPhone = tournament.bitPaymentPhone.replace(/[-\s]/g, '');
     
-    // יצירת קישור פשוט לביט - שיטה זו פותחת את אפליקציית ביט ומגדירה מראש את הפרטים
-    return `https://www.bit.ly/a/payment?phone=${encodeURIComponent(cleanPhone)}&amount=${encodeURIComponent(tournament.price)}&name=${encodeURIComponent(tournament.bitPaymentName || `טורניר ${tournament.name}`)}`;
+    // קישור רשמי לביט - פותח את האפליקציה ישירות
+    return `https://bit.me/p/${cleanPhone}?am=${tournament.price}&rm=${encodeURIComponent(tournament.bitPaymentName || `טורניר ${tournament.name}`)}`;
   }
 
-  // קישור לתשלום בביט (בפורמט החדש והאמין יותר)
+  // קישור לתשלום בביט
   const bitPaymentLink = tournament?.price && tournament?.bitPaymentPhone 
     ? generateBitPaymentLink() 
     : null;
@@ -221,6 +221,8 @@ export default function RegisterPage() {
     if (!registrationId) return;
     
     try {
+      setIsSubmitting(true);
+      
       const response = await fetch('/api/payment-confirmation', {
         method: 'POST',
         headers: {
@@ -248,7 +250,6 @@ export default function RegisterPage() {
       setTimeout(() => {
         router.push(`/tournaments/${tournamentId}`);
       }, 2000);
-      
     } catch (error) {
       console.error('Error confirming payment:', error);
       toast({
@@ -256,7 +257,93 @@ export default function RegisterPage() {
         description: "אירעה שגיאה באישור התשלום",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
+  };
+
+  // Handle payment process
+  const processPayment = async (method: 'bit' | 'paybox') => {
+    if (!registrationId) return;
+    
+    try {
+      setIsSubmitting(true);
+      
+      if (method === 'bit') {
+        // Open Bit payment link in new window
+        if (bitPaymentLink) {
+          window.open(bitPaymentLink, '_blank');
+          
+          // Ask the user if payment was completed
+          setTimeout(() => {
+            const confirmed = confirm(
+              "האם ביצעת את התשלום בביט?\n" +
+              "לחץ 'אישור' אם התשלום הושלם, או 'ביטול' אם לא."
+            );
+            
+            if (confirmed) {
+              confirmPayment('bit');
+            } else {
+              toast({
+                title: "תשלום לא הושלם",
+                description: "תוכל להשלים את התשלום מאוחר יותר באזור האישי",
+                variant: "default",
+              });
+            }
+          }, 5000);
+        } else {
+          toast({
+            title: "שגיאה",
+            description: "לא ניתן ליצור קישור תשלום בביט",
+            variant: "destructive",
+          });
+        }
+      } else if (method === 'paybox') {
+        // Open Paybox payment link in new window
+        if (payboxPaymentLink) {
+          window.open(payboxPaymentLink, '_blank');
+          
+          // Ask the user if payment was completed
+          setTimeout(() => {
+            const confirmed = confirm(
+              "האם ביצעת את התשלום בPaybox?\n" +
+              "לחץ 'אישור' אם התשלום הושלם, או 'ביטול' אם לא."
+            );
+            
+            if (confirmed) {
+              confirmPayment('paybox');
+            } else {
+              toast({
+                title: "תשלום לא הושלם",
+                description: "תוכל להשלים את התשלום מאוחר יותר באזור האישי",
+                variant: "default",
+              });
+            }
+          }, 5000);
+        } else {
+          toast({
+            title: "שגיאה",
+            description: "לא קיים קישור תשלום בפייבוקס",
+            variant: "destructive",
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error processing payment:', error);
+      toast({
+        title: "שגיאה",
+        description: "אירעה שגיאה בעיבוד התשלום",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handle payment selection
+  const handlePaymentSelection = (method: 'bit' | 'paybox') => {
+    setPaymentMethod(method);
+    processPayment(method);
   };
 
   if (isLoading) {
@@ -355,7 +442,7 @@ export default function RegisterPage() {
                       <Button 
                         variant="default" 
                         className="bg-green-600 hover:bg-green-700"
-                        onClick={() => confirmPayment(paymentMethod)}
+                        onClick={() => handlePaymentSelection(paymentMethod)}
                       >
                         אישור תשלום
                       </Button>

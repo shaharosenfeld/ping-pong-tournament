@@ -261,35 +261,21 @@ export function TournamentForm({
     setIsSubmitting(true)
     
     try {
-      // לוג יותר מפורט של localStorage ומצב התחברות
-      console.log("TournamentForm: מצב localStorage לפני בדיקת אימות:", {
-        isAdmin: localStorage.getItem('isAdmin'),
-        adminToken: localStorage.getItem('adminToken'),
-        isAuthenticated: localStorage.getItem('isAuthenticated')
-      });
-      
-      // בדיקת אימות לפני שליחת הנתונים
+      // Get auth token
       const authToken = localStorage.getItem('adminToken');
-      console.log("TournamentForm: בודק טוקן לפני שליחה:", authToken);
       
       if (!authToken) {
-        console.log("TournamentForm: טוקן חסר, מנתק ומנווט לדף התחברות");
         toast({
           title: "שגיאה באימות",
           description: "נא להתחבר מחדש כדי לבצע פעולה זו",
           variant: "destructive",
         });
         
-        // נקה את אחסון המצב
-        try {
-          localStorage.removeItem('isAdmin');
-          localStorage.removeItem('adminToken');
-          localStorage.removeItem('isAuthenticated');
-        } catch (e) {
-          console.error("Error clearing localStorage:", e);
-        }
+        // Clear localStorage and redirect to login
+        localStorage.removeItem('isAdmin');
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('isAuthenticated');
         
-        // עיכוב קצר לפני ניווט
         setTimeout(() => {
           window.location.href = '/login?returnTo=' + encodeURIComponent(window.location.pathname);
         }, 1500);
@@ -298,39 +284,8 @@ export function TournamentForm({
         return;
       }
       
-      let apiData
-      
-      console.log("TournamentForm: מגיש נתונים", { mode, formData })
-      
-      // Debug auth
-      console.log("TournamentForm: טוקן אימות", authToken);
-      const headers = getAuthHeaders();
-      
-      // לוג השדות של headers
-      const headerEntries = [...headers.entries()];
-      console.log("TournamentForm: כותרות בקשה", Object.fromEntries(headerEntries));
-      
-      // בדיקה האם יש כותרת אימות
-      const hasAuthHeader = headers.has('Authorization');
-      const hasAdminTokenHeader = headers.has('X-Admin-Token');
-      const hasIsAdminHeader = headers.has('X-Is-Admin');
-      
-      console.log("TournamentForm: בדיקת כותרות אימות", {
-        hasAuthHeader,
-        hasAdminTokenHeader,
-        hasIsAdminHeader,
-        authHeader: headers.get('Authorization'),
-        adminTokenHeader: headers.get('X-Admin-Token'),
-        isAdminHeader: headers.get('X-Is-Admin')
-      });
-      
-      // שיטה חלופית לשליחת הטוקנים
-      if (!hasAuthHeader && !hasAdminTokenHeader && authToken) {
-        console.log("TournamentForm: אין כותרת אימות, מוסיף ידנית");
-        headers.append('Authorization', `Bearer ${authToken}`);
-        headers.append('X-Admin-Token', authToken);
-        headers.append('X-Is-Admin', 'true');
-      }
+      // Prepare API data
+      let apiData;
       
       if (mode === 'edit') {
         // In edit mode, only send fields that should be editable
@@ -347,10 +302,11 @@ export function TournamentForm({
           registrationOpen: formData.registrationOpen,
           registrationDeadline: formData.registrationDeadline,
           bitPaymentPhone: formData.bitPaymentPhone,
-          bitPaymentName: formData.bitPaymentName
+          bitPaymentName: formData.bitPaymentName,
+          payboxPaymentLink: formData.payboxPaymentLink
         }
       } else {
-        // בדיקת הרשאות מנהל
+        // In create mode
         if (!isAdmin) {
           toast({
             title: "שגיאה",
@@ -457,7 +413,8 @@ export function TournamentForm({
           manualMatches: matchGenerationMode === 'manual' ? manualMatches : undefined,
           groupAssignments: formData.format === 'groups_knockout' ? groupAssignments : undefined,
           bitPaymentPhone: formData.bitPaymentPhone,
-          bitPaymentName: formData.bitPaymentName
+          bitPaymentName: formData.bitPaymentName,
+          payboxPaymentLink: formData.payboxPaymentLink
         }
       }
       
@@ -468,57 +425,45 @@ export function TournamentForm({
       
       const method = mode === 'edit' ? 'PUT' : 'POST'
       
-      console.log(`TournamentForm: שולח בקשה ${method} ל-${url}`);
-      
-      // ניסיון לשליחת הבקשה עם headers בצורה אחרת - כותרות ידניות במקום שימוש ב-getAuthHeaders
-      const manualHeaders = {
+      // Set up headers with authentication
+      const headers = {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
-        'X-Admin-Token': localStorage.getItem('adminToken') || '',
-        'X-Is-Admin': 'true'
+        'Authorization': `Bearer ${authToken}`,
+        'X-Admin-Token': authToken
       };
       
-      console.log('TournamentForm: שולח עם כותרות ידניות:', manualHeaders);
-      
-      // שליחת הבקשה ל-API
+      // Send request to API
       const response = await fetch(url, {
         method,
-        headers: manualHeaders,
+        headers,
         body: JSON.stringify(apiData),
       });
       
-      console.log('TournamentForm: תגובה התקבלה, סטטוס:', response.status);
-      
       if (!response.ok) {
-        try {
-          const errorData = await response.json();
-          console.error('Server error:', errorData);
+        // Handle authentication errors
+        if (response.status === 401) {
+          toast({
+            title: "שגיאת אימות",
+            description: "אין הרשאות מנהל. נא להתחבר מחדש.",
+            variant: "destructive",
+          });
           
-          if (response.status === 401) {
-            console.log("TournamentForm: שגיאת אימות, מנתק ומנווט לדף התחברות");
-            toast({
-              title: "שגיאת אימות",
-              description: errorData.error || "אין הרשאות מנהל. נא להתחבר מחדש.",
-              variant: "destructive",
-            });
-            
-            setTimeout(() => {
-              localStorage.removeItem('isAdmin');
-              localStorage.removeItem('adminToken');
-              window.location.href = '/login?returnTo=' + encodeURIComponent(window.location.pathname);
-            }, 1500);
-            
-            setIsSubmitting(false);
-            return;
-          }
+          setTimeout(() => {
+            localStorage.removeItem('isAdmin');
+            localStorage.removeItem('adminToken');
+            window.location.href = '/login?returnTo=' + encodeURIComponent(window.location.pathname);
+          }, 1500);
           
-          throw new Error(`Failed to ${mode === 'edit' ? 'update' : 'create'} tournament: ${errorData.error || response.statusText}`);
-        } catch (parseError) {
-          console.error('Error parsing response:', parseError);
-          throw new Error(`Failed to ${mode === 'edit' ? 'update' : 'create'} tournament`);
+          setIsSubmitting(false);
+          return;
         }
+        
+        // Handle other errors
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(`Failed to ${mode === 'edit' ? 'update' : 'create'} tournament: ${errorData.error || response.statusText}`);
       }
       
+      // Success
       toast({
         title: mode === 'edit' ? "הטורניר עודכן בהצלחה" : "הטורניר נוצר בהצלחה",
         description: mode === 'edit' ? "פרטי הטורניר עודכנו במערכת" : "הטורניר נוצר במערכת",

@@ -26,6 +26,9 @@ interface Tournament {
   secondPlacePrize: string | null
   registrationOpen: boolean
   registrationDeadline: string | null
+  bitPaymentPhone: string | null
+  bitPaymentName: string | null
+  payboxPaymentLink: string | null
 }
 
 export default function EditTournamentPage() {
@@ -37,6 +40,7 @@ export default function EditTournamentPage() {
   const { toast } = useToast()
   const [tournament, setTournament] = useState<Tournament | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [authError, setAuthError] = useState(false)
 
   useEffect(() => {
     const fetchTournament = async () => {
@@ -52,13 +56,28 @@ export default function EditTournamentPage() {
       
       try {
         console.log(`Fetching tournament data for ID: ${tournamentId}`)
+        
+        // Get admin token from localStorage
+        const adminToken = localStorage.getItem('adminToken')
+        if (!adminToken) {
+          setAuthError(true)
+          throw new Error('Admin token missing')
+        }
+        
         const response = await fetch(`/api/tournaments/${tournamentId}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${adminToken}`,
+            'X-Admin-Token': adminToken,
             'Cache-Control': 'no-cache'
           }
         })
+        
+        if (response.status === 401) {
+          setAuthError(true)
+          throw new Error('Unauthorized')
+        }
         
         if (!response.ok) {
           const errorText = await response.text()
@@ -72,17 +91,31 @@ export default function EditTournamentPage() {
         setIsLoading(false)
       } catch (error) {
         console.error('Error fetching tournament:', error)
-        toast({
-          title: "שגיאה בטעינת נתונים",
-          description: "לא ניתן לטעון את פרטי הטורניר",
-          variant: "destructive",
-        })
-        router.push('/tournaments')
+        
+        if (authError) {
+          toast({
+            title: "שגיאת הרשאות",
+            description: "אין לך הרשאה לעריכת טורניר. נא להתחבר מחדש.",
+            variant: "destructive",
+          })
+          
+          // Redirect to login after a short delay
+          setTimeout(() => {
+            router.push('/login?returnTo=' + encodeURIComponent(window.location.pathname))
+          }, 2000)
+        } else {
+          toast({
+            title: "שגיאה בטעינת נתונים",
+            description: "לא ניתן לטעון את פרטי הטורניר",
+            variant: "destructive",
+          })
+          router.push('/tournaments')
+        }
       }
     }
 
     fetchTournament()
-  }, [tournamentId, router, toast])
+  }, [tournamentId, router, toast, authError])
 
   const handleSuccess = () => {
     toast({
@@ -91,6 +124,20 @@ export default function EditTournamentPage() {
       variant: "default",
     })
     router.push(`/tournaments/${tournamentId}`)
+  }
+
+  if (authError) {
+    return (
+      <div className="container mx-auto py-12">
+        <div className="flex flex-col items-center justify-center text-center space-y-4">
+          <h1 className="text-2xl font-bold text-red-600">שגיאת הרשאות</h1>
+          <p>אין לך הרשאה לעריכת טורניר. מועבר לדף התחברות...</p>
+          <Button onClick={() => router.push('/login?returnTo=' + encodeURIComponent(window.location.pathname))}>
+            התחבר
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -128,7 +175,10 @@ export default function EditTournamentPage() {
               secondPlacePrize: tournament.secondPlacePrize || "",
               players: tournament.players.map(p => p.id),
               registrationOpen: tournament.registrationOpen || false,
-              registrationDeadline: tournament.registrationDeadline || ""
+              registrationDeadline: tournament.registrationDeadline || "",
+              bitPaymentPhone: tournament.bitPaymentPhone || "",
+              bitPaymentName: tournament.bitPaymentName || "",
+              payboxPaymentLink: tournament.payboxPaymentLink || ""
             }}
             onSuccess={handleSuccess}
           />
