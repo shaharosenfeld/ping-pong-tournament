@@ -27,17 +27,23 @@ export default function AdminCheck({ children }: { children: React.ReactNode }) 
         
         console.log(`AdminCheck: isAdmin=${isAdmin}, isAdminFromStorage=${isAdminFromStorage}, hasToken=${hasToken}`)
         
-        // רק אם גם הוק האימות וגם ה-localStorage מאשרים שהמשתמש מנהל
-        if (isAdmin && isAdminFromStorage && hasToken) {
+        // מעדכן את הבדיקה להיות יותר סלחנית - אם אחד מהתנאים מתקיים, נאשר גישה
+        // זה מונע מצב של "לופ התחברות" כשיש אי התאמה בין localStorage למצב בהוק
+        if ((isAdmin || isAdminFromStorage) && hasToken) {
           console.log("AdminCheck: גישת מנהל אושרה")
           setAccessState('allowed')
+          
+          // אם יש אי התאמה בין הוק ו-localStorage, נעדכן את localStorage להיות תואם למצב האמיתי
+          if (isAdmin && !isAdminFromStorage) {
+            localStorage.setItem('isAdmin', 'true')
+          }
         } else {
           console.log("AdminCheck: אין הרשאות מנהל, מפנה לדף התחברות")
-          // בגלל שאין גישה מאושרת, ננקה גם את ה-localStorage למקרה שיש שם מידע שגוי
-          if (!isAdmin && (isAdminFromStorage || hasToken)) {
+          // ננקה את ה-localStorage רק אם אין שום סימן להרשאות מנהל כלל
+          if (!isAdmin && !isAdminFromStorage && !hasToken) {
             localStorage.removeItem('isAdmin')
             localStorage.removeItem('adminToken')
-            console.log("AdminCheck: ניקוי נתוני אימות שגויים מ-localStorage")
+            console.log("AdminCheck: ניקוי נתוני אימות מ-localStorage")
           }
           setAccessState('denied')
         }
@@ -47,8 +53,8 @@ export default function AdminCheck({ children }: { children: React.ReactNode }) 
       }
     }
     
-    // הגדרת טיימר קצר להבטיח שהאימות יתבצע אחרי אתחול המערכת
-    const timer = setTimeout(checkAdmin, 100)
+    // הגדרת טיימר ארוך יותר כדי לתת להוק האימות זמן להתעדכן
+    const timer = setTimeout(checkAdmin, 300)
     return () => clearTimeout(timer)
   }, [isAdmin, router])
   

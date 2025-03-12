@@ -8,13 +8,15 @@ interface AuthContextType {
   adminToken: string | null
   login: (password: string) => Promise<boolean>
   logout: () => void
+  refreshAuthState: () => void
 }
 
 const AuthContext = createContext<AuthContextType>({
   isAdmin: false,
   adminToken: null,
   login: async () => false,
-  logout: () => {}
+  logout: () => {},
+  refreshAuthState: () => {}
 })
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -22,19 +24,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [adminToken, setAdminToken] = useState<string | null>(null)
   const [isInitialized, setIsInitialized] = useState(false)
   
+  const refreshAuthState = () => {
+    try {
+      if (typeof window !== 'undefined') {
+        console.log("AuthProvider: מרענן מצב אימות")
+        const storedIsAdmin = localStorage.getItem('isAdmin') === 'true'
+        const storedToken = localStorage.getItem('adminToken')
+        
+        console.log(`AuthProvider: isAdmin=${storedIsAdmin}, token=${!!storedToken}`)
+        
+        if (storedIsAdmin && storedToken) {
+          setIsAdmin(true)
+          setAdminToken(storedToken)
+        } else {
+          setIsAdmin(false)
+          setAdminToken(null)
+        }
+      }
+    } catch (error) {
+      console.error("Auth refresh error:", error)
+    }
+  }
+  
   useEffect(() => {
     const checkAuthState = () => {
       try {
         if (typeof window !== 'undefined') {
-          console.log("AuthProvider: בודק מצב אימות")
+          console.log("AuthProvider: בודק מצב אימות בעת טעינה")
           const storedIsAdmin = localStorage.getItem('isAdmin') === 'true'
           const storedToken = localStorage.getItem('adminToken')
           
           console.log(`AuthProvider: isAdmin=${storedIsAdmin}, token=${!!storedToken}`)
           
           if (storedIsAdmin && storedToken) {
-            setIsAdmin(true)
-            setAdminToken(storedToken)
+            const isValidTokenFormat = storedToken.startsWith('admin-') || storedToken.length > 30
+            
+            if (isValidTokenFormat) {
+              setIsAdmin(true)
+              setAdminToken(storedToken)
+            } else {
+              console.log("AuthProvider: מוחק טוקן לא תקין")
+              localStorage.removeItem('isAdmin')
+              localStorage.removeItem('adminToken')
+              setIsAdmin(false)
+              setAdminToken(null)
+            }
           } else {
             setIsAdmin(false)
             setAdminToken(null)
@@ -51,6 +85,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     
     checkAuthState()
+    
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === 'isAdmin' || event.key === 'adminToken') {
+        refreshAuthState()
+      }
+    }
+    
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
   }, [])
   
   const login = async (password: string): Promise<boolean> => {
@@ -78,11 +121,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (data.success) {
         console.log("AuthProvider: התחברות הצליחה")
-        setIsAdmin(true)
-        setAdminToken(data.token)
+        
+        localStorage.removeItem('isAdmin')
+        localStorage.removeItem('adminToken')
         
         localStorage.setItem('isAdmin', 'true')
         localStorage.setItem('adminToken', data.token)
+        
+        setIsAdmin(true)
+        setAdminToken(data.token)
         
         toast.success('התחברת בהצלחה כמנהל')
         return true
@@ -109,7 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
   
   return (
-    <AuthContext.Provider value={{ isAdmin, adminToken, login, logout }}>
+    <AuthContext.Provider value={{ isAdmin, adminToken, login, logout, refreshAuthState }}>
       {children}
     </AuthContext.Provider>
   )

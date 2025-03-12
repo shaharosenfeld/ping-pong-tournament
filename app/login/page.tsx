@@ -64,34 +64,13 @@ export default function LoginPage() {
         localStorage.setItem("loginAttempts", "0")
       }
       
-      // ניסיון התחברות
-      console.log('Login: נשלחת בקשת התחברות עם סיסמה');
-      const response = await fetch('/api/admin/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ password })
-      });
+      // ניסיון התחברות דרך הוק האימות
+      console.log('Login: מנסה להתחבר באמצעות useAuth hook');
+      const success = await login(password);
+      console.log('Login: תוצאת ההתחברות:', success);
       
-      const data = await response.json();
-      console.log('Login: התקבלה תגובה מהשרת:', data);
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'שגיאה לא ידועה בהתחברות');
-      }
-      
-      if (data.success) {
-        console.log("Login: התחברות הצליחה, נשמר טוקן:", data.token);
-        
-        // נקה את כל ערכי האימות הישנים לפני הוספת החדשים
-        localStorage.removeItem('isAdmin');
-        localStorage.removeItem('adminToken');
-        localStorage.removeItem('isAuthenticated');
-        
-        // הוסף את ערכי האימות החדשים
-        localStorage.setItem('isAdmin', 'true');
-        localStorage.setItem('adminToken', data.token);
+      if (success) {
+        console.log("Login: התחברות הצליחה");
         
         // וידוא שה-localStorage מכיל את המידע הנכון
         console.log('Login: ערכי localStorage לאחר התחברות:');
@@ -107,16 +86,18 @@ export default function LoginPage() {
         setTimeout(() => {
           // הפניה לדף החזרה או דף ברירת המחדל
           const returnTo = searchParams.get('returnTo')
+          
+          // במקום window.location, נשתמש ב-router לשמירה על המצב בין הדפים
           if (returnTo) {
-            window.location.href = returnTo; // השתמש ב-window.location במקום router לטעינה מחדש
+            router.push(returnTo);
           } else {
-            window.location.href = '/admin'; // השתמש ב-window.location במקום router לטעינה מחדש
+            router.push('/admin');
           }
           
           // רק אחרי שההפניה בוצעה, מסירים את מצב הטעינה
           setIsLoading(false)
           setIsAuthenticating(false)
-        }, 1000)
+        }, 500) // הקטנת זמן ההשהיה ל-500ms
       } else {
         // עדכון ספירת ניסיונות הכניסה
         const newAttempts = loginAttempts + 1

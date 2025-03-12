@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Trophy, Table, Users, BarChart, ArrowUpRight, Calendar, Star, Bot, Sparkles } from "lucide-react"
+import { Trophy, Table, Users, BarChart, ArrowUpRight, Calendar, Star, Bot, Sparkles, Coins, Award, ExternalLink } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "@/components/ui/use-toast"
 import { useAuth } from "./hooks/use-auth"
@@ -22,6 +22,10 @@ interface RecentTournament {
   completedMatches: number
   winner: string | null
   runnerUp: string | null
+  price: number | null
+  firstPlacePrize: string | null
+  secondPlacePrize: string | null
+  registrationOpen: boolean
 }
 
 interface Stats {
@@ -124,7 +128,11 @@ export default function HomePage() {
             players: latest.players.length,
             completedMatches: latest.matches.filter((m: any) => m.status === 'completed').length,
             winner: null,
-            runnerUp: null
+            runnerUp: null,
+            price: latest.price,
+            firstPlacePrize: latest.firstPlacePrize,
+            secondPlacePrize: latest.secondPlacePrize,
+            registrationOpen: latest.registrationOpen || false
           })
         }
         
@@ -400,6 +408,67 @@ export default function HomePage() {
                     </div>
                   </div>
                 </div>
+                
+                {/* Tournament Prizes Section */}
+                {(latestTournament.price || latestTournament.firstPlacePrize || latestTournament.secondPlacePrize) && (
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold mb-3 flex items-center">
+                      <Coins className="h-5 w-5 text-yellow-500 ml-2" />
+                      פרסים ותשלומים
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      {latestTournament.firstPlacePrize && (
+                        <div className="border-2 border-yellow-400 rounded-lg bg-gradient-to-b from-yellow-50 to-yellow-100 p-4 shadow-md hover:shadow-lg transition-all order-1 sm:order-2 col-span-1 sm:col-span-1 transform hover:-translate-y-1">
+                          <div className="flex flex-col items-center">
+                            <p className="text-xs font-medium text-yellow-700 mb-1">פרס גדול - מקום ראשון</p>
+                            <div className="flex items-center gap-1.5 mb-2">
+                              <Trophy className="h-6 w-6 text-yellow-500" />
+                            </div>
+                            <p className="text-xl font-bold text-yellow-800">{latestTournament.firstPlacePrize}</p>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {latestTournament.secondPlacePrize && (
+                        <div className="border border-blue-300 rounded-lg bg-blue-50 p-4 shadow-sm hover:shadow-md transition-all order-3 transform hover:-translate-y-1">
+                          <div className="flex flex-col items-center">
+                            <p className="text-xs font-medium text-blue-600 mb-1">מקום שני</p>
+                            <div className="flex items-center gap-1.5 mb-2">
+                              <Award className="h-5 w-5 text-blue-500" />
+                            </div>
+                            <p className="text-md font-semibold text-blue-700">{latestTournament.secondPlacePrize}</p>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {latestTournament.price && (
+                        <div className={`border rounded-lg p-4 shadow-sm hover:shadow-md transition-all order-2 sm:order-1 transform hover:-translate-y-1 ${
+                          latestTournament.registrationOpen 
+                            ? 'border-green-300 bg-green-50' 
+                            : 'border-gray-200 bg-gray-50'
+                        }`}>
+                          <div className="flex flex-col items-center">
+                            <p className="text-xs font-medium text-gray-600 mb-1">דמי השתתפות</p>
+                            <p className="text-md font-semibold mb-2">{latestTournament.price} ₪</p>
+                            
+                            {latestTournament.registrationOpen ? (
+                              <Link href={`/tournaments/${latestTournament.id}/register`} className="mt-2">
+                                <Button size="sm" variant="outline" className="bg-green-100 border-green-300 text-green-700 hover:bg-green-200 hover:text-green-800 flex items-center gap-1">
+                                  <span>הרשם עכשיו</span>
+                                  <ExternalLink className="h-3.5 w-3.5" />
+                                </Button>
+                              </Link>
+                            ) : (
+                              <Button size="sm" variant="outline" disabled className="bg-gray-100 border-gray-300 text-gray-500">
+                                ההרשמה סגורה
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </MotionCard>
           </motion.div>
