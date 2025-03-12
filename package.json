@@ -12,7 +12,8 @@
     "db:migrate": "prisma migrate deploy",
     "db:migrate:safe": "node prisma/safe-migrate.js",
     "db:migrate:force": "prisma migrate deploy --skip-generate",
-    "db:verify": "node prisma/verify-schema.js"
+    "db:verify": "node prisma/verify-schema.js",
+    "db:restore": "node prisma/restore-data.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
