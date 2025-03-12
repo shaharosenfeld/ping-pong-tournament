@@ -349,12 +349,12 @@ export default function HomePage() {
           <div className="p-5 md:p-6 rounded-2xl bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950 dark:to-yellow-900">
             <div className="flex flex-col sm:flex-row items-center gap-4">
               <div className="bg-white p-3 rounded-xl shadow-sm">
-                <div className="h-12 w-12 flex items-center justify-center">
+                <div className="h-16 w-16 flex items-center justify-center">
                   <Image
-                    src="/placeholder-logo.png"
+                    src="/placeholder-logo.svg"
                     alt="PaddleBot Logo"
-                    width={48}
-                    height={48}
+                    width={60}
+                    height={60}
                     className="object-contain"
                     priority
                   />
