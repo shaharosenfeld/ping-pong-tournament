@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { CalendarDays, MapPin, Trophy, Users, DollarSign } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TournamentRegistrations } from "@/components/TournamentRegistrations";
+import { useAuth } from "@/app/hooks/use-auth";
 
 interface Player {
   id: string;
@@ -38,12 +40,15 @@ interface Tournament {
 export default function TournamentPage() {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const tournamentId = pathname?.split('/').slice(-1)[0] || '';
+  const initialTab = searchParams.get('tab') || 'info';
   
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('info');
+  const [activeTab, setActiveTab] = useState(initialTab);
   const { toast } = useToast();
+  const { isAdmin } = useAuth();
   
   useEffect(() => {
     const fetchTournament = async () => {
@@ -127,10 +132,23 @@ export default function TournamentPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="info" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full md:w-auto grid-cols-2 md:inline-flex">
-          <TabsTrigger value="info">פרטי הטורניר</TabsTrigger>
+      <Tabs 
+        defaultValue={activeTab} 
+        className="mt-6" 
+        onValueChange={(value) => {
+          setActiveTab(value);
+          // עדכון ה-URL עם הטאב החדש
+          const newParams = new URLSearchParams(searchParams);
+          newParams.set('tab', value);
+          router.push(`${pathname}?${newParams.toString()}`);
+        }}
+      >
+        <TabsList className="grid w-full grid-cols-3 md:grid-cols-5">
+          <TabsTrigger value="info">מידע</TabsTrigger>
           <TabsTrigger value="players">שחקנים</TabsTrigger>
+          <TabsTrigger value="matches">משחקים</TabsTrigger>
+          <TabsTrigger value="standings">טבלה</TabsTrigger>
+          <TabsTrigger value="registrations">הרשמות</TabsTrigger>
         </TabsList>
         
         <TabsContent value="info">
@@ -209,6 +227,27 @@ export default function TournamentPage() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+        
+        <TabsContent value="registrations" className="mt-6">
+          <TournamentRegistrations 
+            tournamentId={tournamentId} 
+            isAdmin={isAdmin}
+            onRegistrationsChange={() => {
+              // רענון נתוני הטורניר לאחר שינוי הרשמות
+              setIsLoading(true);
+              fetch(`/api/tournaments/${tournamentId}`)
+                .then(res => res.json())
+                .then(data => {
+                  setTournament(data);
+                  setIsLoading(false);
+                })
+                .catch(err => {
+                  console.error('Error refreshing tournament data:', err);
+                  setIsLoading(false);
+                });
+            }}
+          />
         </TabsContent>
       </Tabs>
       

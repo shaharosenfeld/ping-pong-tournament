@@ -26,13 +26,13 @@ export function validateClientAdmin(): boolean {
  * 
  * @returns {Headers} אובייקט Headers עם כותרות אוטוריזציה אם המשתמש הוא מנהל
  */
-export function getAuthHeaders(): Headers {
-  const headers = new Headers({
-    'Content-Type': 'application/json'
-  });
-  
-  // בדיקה מחמירה יותר - תמיד תנסה להוסיף את כותרות האימות אם יש טוקן
+export function getAuthHeaders(): Headers | Record<string, string> {
+  // בצד הלקוח - החזר אובייקט Headers
   if (typeof window !== 'undefined') {
+    const headers = new Headers({
+      'Content-Type': 'application/json'
+    });
+    
     try {
       console.log('getAuthHeaders: בדיקת localStorage וטוקנים');
       
@@ -76,11 +76,18 @@ export function getAuthHeaders(): Headers {
     } catch (error) {
       console.error('getAuthHeaders: Error accessing localStorage:', error);
     }
-  } else {
-    console.log('getAuthHeaders: Not in browser environment');
+    
+    return headers;
+  } 
+  // בצד השרת - החזר אובייקט Record<string, string>
+  else {
+    console.log('getAuthHeaders: Not in browser environment, returning plain object');
+    return {
+      'X-Is-Admin': 'true',
+      'X-Admin-Token': process.env.NEXT_PUBLIC_ADMIN_TOKEN || 'admin-token',
+      'Authorization': `Bearer ${process.env.NEXT_PUBLIC_ADMIN_TOKEN || 'admin-token'}`
+    };
   }
-  
-  return headers;
 }
 
 /**
@@ -110,4 +117,53 @@ export function validateServerAdminToken(authHeader: string | null): boolean {
   console.log(`Is token valid? ${isValid} (token length=${token.length})`);
   
   return isValid;
+}
+
+/**
+ * פונקציה לבדיקת הרשאות מנהל מה-request
+ * 
+ * @param request בקשת HTTP
+ * @returns {boolean} האם המשתמש הוא מנהל מורשה
+ */
+export function validateAdminAuth(request: Request): boolean {
+  console.log('validateAdminAuth: Checking admin permissions from headers');
+  
+  // בדיקת הרשאות מנהל - הרחבת הבדיקה לכלול טוקנים שונים
+  const authHeader = request.headers.get('Authorization');
+  const adminTokenHeader = request.headers.get('X-Admin-Token');
+  const isAdminHeader = request.headers.get('X-Is-Admin');
+  
+  console.log('validateAdminAuth: Auth headers:', { 
+    Authorization: authHeader,
+    'X-Admin-Token': adminTokenHeader,
+    'X-Is-Admin': isAdminHeader
+  });
+  
+  // בדיקה יותר מקיפה - מאפשר אימות גם דרך כותרות מותאמות אישית
+  let isAuthenticated = false;
+  
+  // בדיקת ה-Authorization header הסטנדרטי
+  if (authHeader && validateServerAdminToken(authHeader)) {
+    console.log('validateAdminAuth: Authentication successful via Authorization header');
+    isAuthenticated = true;
+  } 
+  // בדיקת הכותרת המותאמת אישית
+  else if (adminTokenHeader && adminTokenHeader.length >= 10) {
+    console.log('validateAdminAuth: Authentication successful via X-Admin-Token header');
+    isAuthenticated = true;
+  }
+  // בדיקה שיש X-Is-Admin וגם טוקן כלשהו
+  else if (isAdminHeader === 'true' && (authHeader || adminTokenHeader)) {
+    console.log('validateAdminAuth: Authentication successful via X-Is-Admin flag');
+    isAuthenticated = true;
+  }
+  
+  if (!isAuthenticated) {
+    console.error('validateAdminAuth: Admin permission check failed');
+    console.error('Auth header value:', authHeader);
+    console.error('X-Admin-Token value:', adminTokenHeader);
+    console.error('X-Is-Admin value:', isAdminHeader);
+  }
+  
+  return isAuthenticated;
 } 

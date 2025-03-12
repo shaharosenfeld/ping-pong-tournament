@@ -66,6 +66,7 @@ model Player {
   tournaments     Tournament[]
   matchesAsPlayer1 Match[]     @relation("Player1")
   matchesAsPlayer2 Match[]     @relation("Player2")
+  registrations   TournamentRegistration[]
 }
 
 model Match {
@@ -121,6 +122,10 @@ model TournamentRegistration {
   tournamentId     String
   tournament       Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   
+  // קישור לשחקן
+  playerId         String
+  player           Player     @relation(fields: [playerId], references: [id])
+  
   // פרטי תשלום
   paymentMethod    String    @default("bit") // bit, cash, etc
   paymentStatus    String    @default("pending") // pending, paid, failed, etc
@@ -132,5 +137,6 @@ model TournamentRegistration {
   
   @@index([tournamentId])
   @@index([email, phone])
+  @@unique([tournamentId, playerId])
 }
 

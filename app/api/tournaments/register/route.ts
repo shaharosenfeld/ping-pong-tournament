@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from 'uuid'
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { tournamentId, playerId, email, name } = body
+    const { tournamentId, playerId, email, name, phone } = body
     
     if (!tournamentId || !playerId || !email || !name) {
       return NextResponse.json({
@@ -54,12 +54,11 @@ export async function POST(request: Request) {
     }
     
     // בדיקה שהשחקן לא כבר רשום לטורניר
-    const existingRegistration = await prisma.tournamentRegistration.findUnique({
+    // שימוש בfindFirst במקום findUnique עם מפתח מורכב
+    const existingRegistration = await prisma.tournamentRegistration.findFirst({
       where: {
-        tournamentId_playerId: {
-          tournamentId,
-          playerId
-        }
+        tournamentId,
+        playerId
       }
     })
     
@@ -76,31 +75,17 @@ export async function POST(request: Request) {
         id: uuidv4(),
         tournamentId,
         playerId,
-        userEmail: email,
-        userName: name,
+        name,
+        email,
+        phone: phone || "",
+        paymentMethod: "bit",
         paymentStatus: 'pending',
-        paymentAmount: tournament.price || 0,
+        isApproved: false,
       }
     })
     
-    // בדיקה אם השחקן כבר מופיע ברשימת השחקנים של הטורניר, ואם לא - נוסיף אותו
-    const playerInTournament = tournament.players.some(p => p.id === playerId)
-    
-    if (!playerInTournament) {
-      // הוספת השחקן לטורניר
-      await prisma.tournament.update({
-        where: {
-          id: tournamentId
-        },
-        data: {
-          players: {
-            connect: {
-              id: playerId
-            }
-          }
-        }
-      })
-    }
+    // נשים לב: איננו מוסיפים את השחקן לטורניר כאן
+    // התוספת של שחקנים וההגרלה של המשחקים תתבצע רק כשסוגרים את ההרשמה
     
     return NextResponse.json({
       success: true,
