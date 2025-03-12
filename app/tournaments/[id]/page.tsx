@@ -93,10 +93,8 @@ export default function TournamentPage() {
     // וידוא שמספר הטלפון נקי מתווים מיוחדים
     const cleanPhone = tournament.bitPaymentPhone.replace(/[-\s]/g, '');
     
-    // יצירת קישור תקין לביט באמצעות URL מתאים
-    const paymentURL = `https://www.bitpay.co.il/he/pay/${cleanPhone}/${tournament.price}/${encodeURIComponent(tournament.bitPaymentName || `הרשמה לטורניר ${tournament.name}`)}`;
-    
-    return paymentURL;
+    // יצירת קישור תקין לביט המשתמש בפורמט העדכני ביותר של ביט
+    return `https://www.bit.co.il/he-il/pay?phone=${encodeURIComponent(cleanPhone)}&amount=${encodeURIComponent(tournament.price)}&description=${encodeURIComponent(tournament.bitPaymentName || `הרשמה לטורניר ${tournament.name}`)}`;
   }
 
   const bitPaymentLink = tournament?.price && tournament?.bitPaymentPhone 

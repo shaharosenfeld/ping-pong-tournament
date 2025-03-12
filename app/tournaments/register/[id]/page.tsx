@@ -113,6 +113,13 @@ export default function RegisterPage() {
       return;
     }
     
+    // וידוא שמשתמש מודע לכך שיש לבצע תשלום
+    const hasPayment = tournament?.price && tournament?.price > 0;
+    
+    if (hasPayment && !confirm('לתשומת לבך: הרישום לטורניר דורש תשלום של ' + tournament.price + '₪. לאחר הרישום יש לבצע את התשלום דרך ביט. האם להמשיך?')) {
+      return;
+    }
+    
     try {
       setIsSubmitting(true);
       
@@ -141,15 +148,33 @@ export default function RegisterPage() {
         throw new Error('Registration failed');
       }
       
-      toast({
-        title: "ההרשמה הצליחה",
-        description: "נרשמת בהצלחה! אישור ההרשמה יישלח למייל לאחר אישור ידני ע\"י המנהל.",
-      });
-      
-      // אם יש קישור תשלום ביט - לא פותח אותו אוטומטית אלא מציג כפתור
-      setTimeout(() => {
-        router.push(`/tournaments/${tournamentId}`);
-      }, 3500);
+      if (tournament?.price && tournament?.price > 0) {
+        toast({
+          title: "ההרשמה בוצעה בהצלחה",
+          description: "כעת יש לבצע תשלום באמצעות ביט על מנת להשלים את תהליך ההרשמה.",
+          variant: "default",
+        });
+        
+        // נשאר בדף ונציג את כפתור התשלום בצורה בולטת
+        // המשתמש חייב ללחוץ על כפתור התשלום
+        setIsSubmitting(false);
+        // כאן יש לנו גם אפשרות להפעיל פופ-אפ עם ביט
+        
+        // נפתח את קישור התשלום בחלון חדש
+        if (bitPaymentLink) {
+          window.open(bitPaymentLink, '_blank');
+        }
+      } else {
+        toast({
+          title: "ההרשמה הצליחה",
+          description: "נרשמת בהצלחה! אישור ההרשמה יישלח למייל לאחר אישור ידני ע\"י המנהל.",
+        });
+        
+        // אם אין תשלום, נעבור לדף הטורניר
+        setTimeout(() => {
+          router.push(`/tournaments/${tournamentId}`);
+        }, 2000);
+      }
     } catch (error) {
       console.error('Error submitting registration:', error);
       toast({
@@ -157,7 +182,6 @@ export default function RegisterPage() {
         description: "אירעה שגיאה בשליחת טופס ההרשמה",
         variant: "destructive",
       });
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -169,10 +193,8 @@ export default function RegisterPage() {
     // וידוא שמספר הטלפון נקי מתווים מיוחדים
     const cleanPhone = tournament.bitPaymentPhone.replace(/[-\s]/g, '');
     
-    // יצירת קישור תקין לביט באמצעות URL מתאים
-    const paymentURL = `https://www.bitpay.co.il/he/pay/${cleanPhone}/${tournament.price}/${encodeURIComponent(tournament.bitPaymentName || `הרשמה לטורניר ${tournament.name}`)}`;
-    
-    return paymentURL;
+    // יצירת קישור תקין לביט המשתמש בפורמט העדכני ביותר של ביט
+    return `https://www.bit.co.il/he-il/pay?phone=${encodeURIComponent(cleanPhone)}&amount=${encodeURIComponent(tournament.price)}&description=${encodeURIComponent(tournament.bitPaymentName || `הרשמה לטורניר ${tournament.name}`)}`;
   }
 
   const bitPaymentLink = tournament?.price && tournament?.bitPaymentPhone 
@@ -288,34 +310,46 @@ export default function RegisterPage() {
               </div>
             )}
           </CardContent>
-          <CardFooter className="flex flex-col sm:flex-row gap-4 bg-gradient-to-r from-blue-50 to-transparent pt-4">
-            <Button 
-              onClick={handleRegistration} 
-              disabled={isSubmitting || availablePlayers.length === 0 || !selectedPlayerId}
-              className="w-full sm:w-auto"
-            >
-              {isSubmitting ? (
-                <>
-                  <LoaderCircle className="h-4 w-4 mr-2 animate-spin" />
-                  שולח...
-                </>
-              ) : (
-                "הירשם לטורניר"
+          <CardFooter className="flex flex-col gap-4 bg-gradient-to-r from-blue-50 to-transparent pt-4">
+            <div className="w-full text-center">
+              {bitPaymentLink && tournament?.price && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-4 text-sm">
+                  <p className="font-medium">⚠️ חשוב:</p>
+                  <p>לאחר שליחת הטופס, יש לבצע תשלום של {tournament.price}₪ דרך ביט.</p>
+                  <p>אישור ההרשמה מותנה בביצוע התשלום!</p>
+                </div>
               )}
-            </Button>
+            </div>
             
-            {bitPaymentLink && (
+            <div className="flex flex-col sm:flex-row w-full gap-3 justify-center">
               <Button 
-                variant="outline" 
-                className="w-full sm:w-auto bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
-                asChild
+                onClick={handleRegistration} 
+                disabled={isSubmitting || availablePlayers.length === 0 || !selectedPlayerId}
+                className="w-full sm:w-auto"
               >
-                <a href={bitPaymentLink} target="_blank" rel="noopener noreferrer" className="flex items-center">
-                  <img src="/bit-logo.png" alt="ביט" className="h-4 w-4 mr-2" />
-                  שלם {tournament.price}₪ בביט
-                </a>
+                {isSubmitting ? (
+                  <>
+                    <LoaderCircle className="h-4 w-4 mr-2 animate-spin" />
+                    שולח...
+                  </>
+                ) : (
+                  "הירשם לטורניר"
+                )}
               </Button>
-            )}
+              
+              {bitPaymentLink && (
+                <Button 
+                  variant="outline" 
+                  className="w-full sm:w-auto bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+                  asChild
+                >
+                  <a href={bitPaymentLink} target="_blank" rel="noopener noreferrer" className="flex items-center">
+                    <img src="/bit-logo.png" alt="ביט" className="h-4 w-4 mr-2" />
+                    שלם {tournament.price}₪ בביט
+                  </a>
+                </Button>
+              )}
+            </div>
           </CardFooter>
         </Card>
       </div>

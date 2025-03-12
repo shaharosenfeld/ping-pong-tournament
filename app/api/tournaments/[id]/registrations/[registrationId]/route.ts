@@ -77,4 +77,46 @@ export async function PATCH(
       { status: 500 }
     );
   }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: { id: string, registrationId: string } }
+) {
+  // Params must be awaited in Next.js 15.1.0
+  const unwrappedParams = await params;
+  const tournamentId = unwrappedParams.id;
+  const registrationId = unwrappedParams.registrationId;
+
+  try {
+    console.log(`DELETE /api/tournaments/${tournamentId}/registrations/${registrationId}: Deleting registration`);
+    
+    // אימות הרשאות מנהל
+    if (!validateAdminAuth(request)) {
+      console.error('DELETE /api/tournaments/.../registrations/...: Authentication failed');
+      return NextResponse.json(
+        { error: 'אין הרשאות מנהל. נא להתחבר מחדש.' },
+        { status: 401 }
+      );
+    }
+    
+    // מחיקת רישום
+    const deletedRegistration = await prisma.tournamentRegistration.delete({
+      where: {
+        id: registrationId,
+        tournamentId: tournamentId
+      }
+    });
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Registration successfully deleted'
+    });
+  } catch (error) {
+    console.error('Error deleting registration:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete registration' },
+      { status: 500 }
+    );
+  }
 } 

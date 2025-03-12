@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { getAuthHeaders } from '@/lib/admin-utils'
-import { CheckCircle, XCircle, DollarSign } from 'lucide-react'
+import { CheckCircle, XCircle, DollarSign, Trash } from 'lucide-react'
 
 interface Registration {
   id: string
@@ -192,6 +192,46 @@ export function TournamentRegistrations({ tournamentId, isAdmin, onRegistrations
     }
   }
 
+  const deleteRegistration = async (registrationId: string) => {
+    if (!confirm('האם אתה בטוח שברצונך למחוק את ההרשמה לחלוטין? פעולה זו אינה ניתנת לביטול.')) {
+      return;
+    }
+
+    try {
+      const headers = getAuthHeaders();
+      
+      const response = await fetch(`/api/tournaments/${tournamentId}/registrations/${registrationId}`, {
+        method: 'DELETE',
+        headers: headers instanceof Headers ? 
+          Object.fromEntries([...headers.entries()]) : 
+          headers
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to delete registration: ${response.statusText}`);
+      }
+
+      toast({
+        title: 'הצלחה',
+        description: 'ההרשמה נמחקה בהצלחה',
+      });
+
+      // מסיר את ההרשמה מהרשימה המקומית
+      setRegistrations(prev => prev.filter(reg => reg.id !== registrationId));
+
+      if (onRegistrationsChange) {
+        onRegistrationsChange();
+      }
+    } catch (error) {
+      console.error('Error deleting registration:', error);
+      toast({
+        title: 'שגיאה',
+        description: 'אירעה שגיאה במחיקת ההרשמה',
+        variant: 'destructive',
+      });
+    }
+  };
+
   useEffect(() => {
     loadRegistrations()
   }, [tournamentId])
@@ -283,6 +323,15 @@ export function TournamentRegistrations({ tournamentId, isAdmin, onRegistrations
                           <DollarSign className="h-4 w-4 text-gray-400" />
                         </Button>
                       )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteRegistration(registration.id)}
+                        title="מחק הרשמה"
+                        className="hover:bg-red-50"
+                      >
+                        <Trash className="h-4 w-4 text-red-600" />
+                      </Button>
                     </div>
                   )}
                 </div>
