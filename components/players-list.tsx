@@ -10,6 +10,7 @@ import { motion } from "framer-motion"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { getAuthHeaders } from '@/lib/admin-utils'
 
 interface Player {
   id: string
@@ -66,13 +67,13 @@ export const PlayersList = ({ players, tournament, isAdmin }: {
 
   const handleDeletePlayer = (playerId: string) => {
     if (confirm('האם אתה בטוח שברצונך למחוק שחקן זה?')) {
+      // קבלת כותרות הרשאה עם הפונקציה המשופרת
+      const headers = getAuthHeaders();
+      
       // Call delete API
       fetch(`/api/players/${playerId}`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+        headers: headers
       })
       .then(response => {
         if (!response.ok) throw new Error('שגיאה במחיקת השחקן');

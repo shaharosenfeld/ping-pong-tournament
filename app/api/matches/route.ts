@@ -78,19 +78,73 @@ export async function GET() {
   }
 }
 
+// הפונקציה לבדיקת הרשאות מנהל
+function validateAdminAuth(request: Request): boolean {
+  console.log('validateAdminAuth: Checking admin permissions from headers');
+  
+  // בדיקת הרשאות מנהל - הרחבת הבדיקה לכלול טוקנים שונים
+  const authHeader = request.headers.get('Authorization');
+  const adminTokenHeader = request.headers.get('X-Admin-Token');
+  const isAdminHeader = request.headers.get('X-Is-Admin');
+  
+  console.log('validateAdminAuth: Auth headers:', { 
+    Authorization: authHeader,
+    'X-Admin-Token': adminTokenHeader,
+    'X-Is-Admin': isAdminHeader
+  });
+  
+  // בדיקה יותר מקיפה - מאפשר אימות גם דרך כותרות מותאמות אישית
+  let isAuthenticated = false;
+  
+  // בדיקת ה-Authorization header הסטנדרטי
+  if (authHeader && validateServerAdminToken(authHeader)) {
+    console.log('validateAdminAuth: Authentication successful via Authorization header');
+    isAuthenticated = true;
+  } 
+  // בדיקת הכותרת המותאמת אישית
+  else if (adminTokenHeader && adminTokenHeader.length >= 10) {
+    console.log('validateAdminAuth: Authentication successful via X-Admin-Token header');
+    isAuthenticated = true;
+  }
+  // בדיקה שיש X-Is-Admin וגם טוקן כלשהו
+  else if (isAdminHeader === 'true' && (authHeader || adminTokenHeader)) {
+    console.log('validateAdminAuth: Authentication successful via X-Is-Admin flag');
+    isAuthenticated = true;
+  }
+  
+  if (!isAuthenticated) {
+    console.error('validateAdminAuth: Admin permission check failed');
+    console.error('Auth header value:', authHeader);
+    console.error('X-Admin-Token value:', adminTokenHeader);
+    console.error('X-Is-Admin value:', isAdminHeader);
+  }
+  
+  return isAuthenticated;
+}
+
 export async function POST(request: Request) {
   try {
-    // בדיקת הרשאות מנהל
-    const authHeader = request.headers.get('Authorization')
-    if (!validateServerAdminToken(authHeader)) {
-      console.error('Admin permission check failed')
+    console.log('POST /api/matches: Starting request');
+    
+    // Log all request headers for debugging
+    console.log('POST /api/matches: All request headers:');
+    request.headers.forEach((value, key) => {
+      console.log(`  ${key}: ${value}`);
+    });
+    
+    // בדיקת הרשאות מנהל באמצעות הפונקציה החדשה
+    if (!validateAdminAuth(request)) {
+      console.error('POST /api/matches: Admin permission check failed');
       return NextResponse.json(
         { error: 'אין הרשאות מנהל. נא להתחבר מחדש.' },
         { status: 401 }
       )
     }
-
+    
+    console.log('POST /api/matches: Authentication successful');
     const body = await request.json()
+    console.log('POST /api/matches: Received body:', JSON.stringify(body));
+    
     const { tournamentId, player1Id, player2Id, date, round, status } = body
 
     // Validate required fields

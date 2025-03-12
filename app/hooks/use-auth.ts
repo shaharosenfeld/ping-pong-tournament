@@ -5,6 +5,8 @@ interface AuthState {
   isAuthenticated: boolean
   isAdmin: boolean
   isLoading: boolean
+  adminToken: string | null
+  refreshAuthState: () => void
   login: (password: string) => Promise<boolean>
   logout: () => void
 }
@@ -15,19 +17,38 @@ const getInitialState = () => {
     return {
       isAuthenticated: false,
       isAdmin: false,
-      isLoading: false
+      isLoading: false,
+      adminToken: null
     }
   }
   
   return {
     isAuthenticated: localStorage.getItem('isAuthenticated') === 'true',
     isAdmin: localStorage.getItem('isAdmin') === 'true',
-    isLoading: false
+    isLoading: false,
+    adminToken: localStorage.getItem('adminToken')
   }
 }
 
 const store: StateCreator<AuthState> = (set) => ({
   ...getInitialState(),
+  
+  refreshAuthState: () => {
+    if (typeof window === 'undefined') return
+    
+    // רענון מצב האימות מה-localStorage
+    const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true'
+    const isAdmin = localStorage.getItem('isAdmin') === 'true'
+    const adminToken = localStorage.getItem('adminToken')
+    
+    set({ 
+      isAuthenticated, 
+      isAdmin, 
+      adminToken
+    })
+    
+    console.log('Auth state refreshed from localStorage:', { isAuthenticated, isAdmin, hasToken: !!adminToken })
+  },
   
   login: async (password: string) => {
     set({ isLoading: true })
@@ -55,7 +76,12 @@ const store: StateCreator<AuthState> = (set) => ({
           console.error('Failed to store auth in localStorage:', e)
         }
         
-        set({ isAuthenticated: true, isAdmin: true, isLoading: false })
+        set({ 
+          isAuthenticated: true, 
+          isAdmin: true, 
+          isLoading: false,
+          adminToken: data.token
+        })
         return true
       }
       set({ isLoading: false })
@@ -77,7 +103,12 @@ const store: StateCreator<AuthState> = (set) => ({
       console.error('Failed to clear auth from localStorage:', e)
     }
     
-    set({ isAuthenticated: false, isAdmin: false, isLoading: false })
+    set({ 
+      isAuthenticated: false, 
+      isAdmin: false, 
+      isLoading: false,
+      adminToken: null
+    })
   }
 })
 
