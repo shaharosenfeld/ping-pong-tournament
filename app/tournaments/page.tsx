@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { TournamentForm } from "@/components/TournamentForm"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "../hooks/use-auth"
 import { Badge } from "@/components/ui/badge"
@@ -14,6 +14,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useRouter } from "next/navigation"
 import { getImageUrl } from "@/lib/utils"
 import { Progress } from "@/components/ui/progress"
+import { getAuthHeaders } from "@/lib/admin-utils"
+import { Input } from "@/components/ui/input"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface Player {
   id: string
@@ -315,8 +318,12 @@ export default function TournamentsPage() {
                                       variant="destructive"
                                       onClick={async () => {
                                         try {
+                                          // קבלת כותרות אימות מהספרייה שלנו
+                                          const authHeaders = getAuthHeaders();
+                                          
                                           const response = await fetch(`/api/tournaments/${tournament.id}`, {
                                             method: 'DELETE',
+                                            headers: authHeaders,
                                           });
                                           
                                           if (!response.ok) {
