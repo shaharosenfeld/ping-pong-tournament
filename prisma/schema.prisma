@@ -37,7 +37,6 @@ model Tournament {
   registrationOpen     Boolean                  @default(false)
   bitPaymentName       String?
   bitPaymentPhone      String?
-  payboxPaymentLink    String?
   firstPlacePrize      String?
   secondPlacePrize     String?
   matches              Match[]
