@@ -11,6 +11,7 @@
     "postinstall": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "db:migrate:safe": "node prisma/safe-migrate.js",
+    "db:migrate:force": "prisma migrate deploy --skip-generate",
     "db:verify": "node prisma/verify-schema.js"
   },
   "dependencies": {

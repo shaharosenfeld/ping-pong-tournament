@@ -4,10 +4,24 @@ const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
 
-async function safeMigrate() {
+const safeMigrate = async () => {
   try {
-    console.log('Checking current database connection...');
-    // Test database connection
+    // Check if we're running in Vercel
+    const isProduction = process.env.NODE_ENV === 'production';
+    const isVercel = process.env.VERCEL === '1';
+    
+    if (isProduction && isVercel) {
+      console.log('⚠️ Running on Vercel production environment');
+      console.log('⚠️ Skipping migrations to avoid timeout issues with Neon database');
+      console.log('⚠️ Please run migrations manually before deploying: npm run db:migrate:force');
+      return process.exit(0); // Exit successfully to allow build to continue
+    }
+
+    const prismaOutput = exec("npx prisma --version").toString().trim();
+    console.log("Prisma Version:", prismaOutput);
+
+    // Connect to the database to check if we can reach it
+    console.log("Connecting to the database...");
     await prisma.$connect();
     console.log('Database connection successful.');
     
