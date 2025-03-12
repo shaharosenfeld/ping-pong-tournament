@@ -419,33 +419,46 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
   const id = unwrappedParams.id;
 
   try {
-    // בדיקת הרשאות מנהל עם הפונקציה החדשה
-    const authHeader = request.headers.get('Authorization');
+    console.log('DELETE /api/tournaments/[id]: Starting delete request for tournament ID:', id);
     
-    if (!validateServerAdminToken(authHeader)) {
-      console.error('Authentication failed: Invalid or missing admin token');
+    // לוג כל הכותרות הקיימות בבקשה
+    console.log('DELETE /api/tournaments/[id]: All request headers:');
+    request.headers.forEach((value, key) => {
+      console.log(`  ${key}: ${value}`);
+    });
+    
+    // שימוש בפונקציית הבדיקה החדשה במקום הקוד הקודם
+    if (!validateAdminAuth(request)) {
+      console.error('DELETE /api/tournaments/[id]: Authentication failed');
+      
       return NextResponse.json(
         { error: 'אין הרשאות מנהל. נא להתחבר מחדש.' },
         { status: 401 }
       );
     }
     
+    console.log('DELETE /api/tournaments/[id]: Authentication successful, proceeding with deletion');
+    
     // First delete all matches associated with this tournament
     await prisma.match.deleteMany({
       where: { tournamentId: id }
-    })
+    });
+    
+    console.log('DELETE /api/tournaments/[id]: Deleted associated matches');
 
     // Then delete the tournament
     await prisma.tournament.delete({
       where: { id }
-    })
+    });
+    
+    console.log('DELETE /api/tournaments/[id]: Tournament deleted successfully');
 
-    return NextResponse.json({ message: 'Tournament deleted successfully' })
+    return NextResponse.json({ message: 'Tournament deleted successfully' });
   } catch (error) {
-    console.error('Error deleting tournament:', error)
+    console.error('Error deleting tournament:', error);
     return NextResponse.json(
       { error: 'Failed to delete tournament' },
       { status: 500 }
-    )
+    );
   }
 } 

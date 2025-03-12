@@ -138,9 +138,9 @@ export default function RegisterPage() {
 
   if (isLoading) {
     return (
-      <div style={{ direction: "rtl" }} className="container mx-auto py-6 flex justify-center items-center min-h-[70vh]">
-        <div className="text-center">
-          <LoaderCircle className="h-10 w-10 animate-spin mx-auto mb-4 text-blue-500" />
+      <div className="container py-8" dir="rtl">
+        <div className="max-w-lg mx-auto text-center space-y-4">
+          <LoaderCircle className="h-10 w-10 animate-spin mx-auto text-blue-600" />
           <p>טוען פרטי טורניר...</p>
         </div>
       </div>
@@ -149,11 +149,11 @@ export default function RegisterPage() {
 
   if (!tournament) {
     return (
-      <div style={{ direction: "rtl" }} className="container mx-auto py-6">
-        <div className="text-center">
-          <h2 className="text-xl font-bold mb-4">הטורניר לא נמצא</h2>
-          <Link href="/tournaments">
-            <Button>חזרה לרשימת הטורנירים</Button>
+      <div className="container py-8" dir="rtl">
+        <div className="max-w-lg mx-auto text-center space-y-4">
+          <h2 className="text-xl font-bold">הטורניר לא נמצא</h2>
+          <Link href="/tournaments" className="text-blue-600 hover:underline">
+            חזרה לרשימת הטורנירים
           </Link>
         </div>
       </div>
@@ -161,15 +161,14 @@ export default function RegisterPage() {
   }
 
   return (
-    <div style={{ direction: "rtl" }} className="container mx-auto py-6 max-w-2xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-2">הרשמה ל{tournament.name}</h1>
-        <Link href={`/tournaments/${tournamentId}`} className="text-blue-500 hover:underline">
-          חזרה לדף הטורניר
+    <div className="container py-8" dir="rtl">
+      <div className="max-w-lg mx-auto space-y-6">
+        <Link href={`/tournaments/${tournamentId}`} className="text-blue-600 hover:underline flex items-center gap-1">
+          &larr; חזרה לדף הטורניר
         </Link>
-      </div>
-      
-      <div className="grid gap-6">
+        
+        <h1 className="text-2xl font-bold">הרשמה ל{tournament.name}</h1>
+        
         <Card>
           <CardHeader>
             <CardTitle>פרטי הטורניר</CardTitle>
@@ -177,15 +176,15 @@ export default function RegisterPage() {
               <CardDescription>{tournament.description}</CardDescription>
             )}
           </CardHeader>
-          <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <CardContent className="space-y-4">
             <div className="flex items-center gap-2">
               <CalendarDays className="h-4 w-4 text-gray-500" />
-              <span>{new Date(tournament.startDate).toLocaleDateString("he-IL")}</span>
+              <span>תאריך: {new Date(tournament.startDate).toLocaleDateString("he-IL")}</span>
             </div>
             {tournament.location && (
               <div className="flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-gray-500" />
-                <span>{tournament.location}</span>
+                <span>מיקום: {tournament.location}</span>
               </div>
             )}
             {tournament.price && (
@@ -199,8 +198,8 @@ export default function RegisterPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>פרטי הרשמה</CardTitle>
-            <CardDescription>אנא מלא את הפרטים הבאים להרשמה לטורניר</CardDescription>
+            <CardTitle>טופס הרשמה</CardTitle>
+            <CardDescription>אנא מלא את הפרטים הבאים</CardDescription>
           </CardHeader>
           <CardContent>
             <form id="registration-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
