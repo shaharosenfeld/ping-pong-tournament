@@ -176,6 +176,18 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       updateData.registrationDeadline = body.registrationDeadline ? new Date(body.registrationDeadline) : null;
     }
     
+    if (body.bitPaymentName !== undefined) {
+      updateData.bitPaymentName = body.bitPaymentName;
+    }
+
+    if (body.bitPaymentPhone !== undefined) {
+      updateData.bitPaymentPhone = body.bitPaymentPhone;
+    }
+    
+    if (body.payboxPaymentLink !== undefined) {
+      updateData.payboxPaymentLink = body.payboxPaymentLink;
+    }
+    
     // בדיקה מיוחדת לעדכון סטטוס הטורניר
     if (body.status !== undefined) {
       // אם מנסים לעדכן את הסטטוס ל-completed, נבדוק שכל המשחקים הסתיימו

@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from 'uuid'
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { tournamentId, playerId, email, name, phone } = body
+    const { tournamentId, playerId, email, name, phone, paymentMethod } = body
     
     if (!tournamentId || !playerId || !email || !name) {
       return NextResponse.json({
@@ -69,6 +69,27 @@ export async function POST(request: Request) {
       }, { status: 400 })
     }
     
+    // קביעת שיטת התשלום הנבחרת
+    // אם לא נבחרה שיטת תשלום, השתמש בביט כברירת מחדל
+    const selectedPaymentMethod = paymentMethod || 'bit';
+    
+    // וידוא שיש נתונים עבור שיטת התשלום הנבחרת
+    if (selectedPaymentMethod === 'bit' && !tournament.bitPaymentPhone) {
+      return NextResponse.json({
+        success: false,
+        message: 'לא ניתן להשתמש בביט כשיטת תשלום עבור טורניר זה (חסר מספר טלפון)'
+      }, { status: 400 })
+    }
+    
+    // בדיקה מותנית עבור תשלום Paybox
+    // אנחנו בודקים אם השיטה היא Paybox ואם נמצא שדה Paybox בטורניר
+    if (selectedPaymentMethod === 'paybox' && !(tournament as any).payboxPaymentLink) {
+      return NextResponse.json({
+        success: false,
+        message: 'לא ניתן להשתמש ב-Paybox כשיטת תשלום עבור טורניר זה (חסר קישור)'
+      }, { status: 400 })
+    }
+    
     // יצירת רשומת הרשמה חדשה
     const registration = await prisma.tournamentRegistration.create({
       data: {
@@ -78,7 +99,7 @@ export async function POST(request: Request) {
         name,
         email,
         phone: phone || "",
-        paymentMethod: "bit",
+        paymentMethod: selectedPaymentMethod,
         paymentStatus: 'pending',
         isApproved: false,
       }

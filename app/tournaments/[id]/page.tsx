@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
-import { CalendarDays, MapPin, Trophy, Users, DollarSign } from "lucide-react";
+import { CalendarDays, MapPin, Trophy, Users, DollarSign, CreditCard } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TournamentRegistrations } from "@/components/TournamentRegistrations";
 import { useAuth } from "@/app/hooks/use-auth";
@@ -34,6 +34,7 @@ interface Tournament {
   price?: number | null;
   bitPaymentPhone?: string | null;
   bitPaymentName?: string | null;
+  payboxPaymentLink?: string | null;
   registrationOpen: boolean;
 }
 
@@ -87,19 +88,20 @@ export default function TournamentPage() {
   
   // יצירת קישור ביט שיכלול את כל הפרטים הנדרשים
   const generateBitPaymentLink = () => {
-    if (!tournament) return null;
-    if (!tournament.bitPaymentPhone || !tournament.price) return null;
+    if (!tournament?.bitPaymentPhone || !tournament?.price) return null;
     
     // וידוא שמספר הטלפון נקי מתווים מיוחדים
     const cleanPhone = tournament.bitPaymentPhone.replace(/[-\s]/g, '');
     
-    // יצירת קישור תקין לביט המשתמש בפורמט העדכני ביותר של ביט
-    return `https://www.bit.co.il/he-il/pay?phone=${encodeURIComponent(cleanPhone)}&amount=${encodeURIComponent(tournament.price)}&description=${encodeURIComponent(tournament.bitPaymentName || `הרשמה לטורניר ${tournament.name}`)}`;
+    // יצירת קישור פשוט לביט - שיטה זו פותחת את אפליקציית ביט ומגדירה מראש את הפרטים
+    return `https://www.bit.ly/a/payment?phone=${encodeURIComponent(cleanPhone)}&amount=${encodeURIComponent(tournament.price)}&name=${encodeURIComponent(tournament.bitPaymentName || `טורניר ${tournament.name}`)}`;
   }
 
   const bitPaymentLink = tournament?.price && tournament?.bitPaymentPhone 
     ? generateBitPaymentLink() 
     : null;
+    
+  const payboxPaymentLink = tournament?.payboxPaymentLink || null;
 
   if (isLoading) {
     return <div className="container py-8 text-center">טוען...</div>;
@@ -265,6 +267,15 @@ export default function TournamentPage() {
             <a href={bitPaymentLink} target="_blank" rel="noopener noreferrer">
               <DollarSign className="h-4 w-4 mr-1" />
               שלם {tournament.price}₪ בביט
+            </a>
+          </Button>
+        )}
+        
+        {payboxPaymentLink && (
+          <Button asChild variant="outline" className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100">
+            <a href={payboxPaymentLink} target="_blank" rel="noopener noreferrer">
+              <CreditCard className="h-4 w-4 mr-1" />
+              שלם {tournament.price}₪ ב-Paybox
             </a>
           </Button>
         )}

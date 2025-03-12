@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Trophy, Users, CheckCircle2, Gauge, MapPin, DollarSign, Medal } from "lucide-react"
+import { Calendar, Trophy, Users, CheckCircle2, Gauge, MapPin, DollarSign, Medal, Link as LinkIcon } from "lucide-react"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -50,6 +50,7 @@ interface TournamentFormProps {
     registrationDeadline?: string
     bitPaymentPhone?: string
     bitPaymentName?: string
+    payboxPaymentLink?: string
   }
   onSuccess?: () => void
 }
@@ -110,7 +111,8 @@ export function TournamentForm({
     registrationOpen: initialData?.registrationOpen || false,
     registrationDeadline: initialData?.registrationDeadline || "",
     bitPaymentPhone: initialData?.bitPaymentPhone || "",
-    bitPaymentName: initialData?.bitPaymentName || ""
+    bitPaymentName: initialData?.bitPaymentName || "",
+    payboxPaymentLink: initialData?.payboxPaymentLink || ""
   })
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>(initialData?.players || [])
   const [playerGroups, setPlayerGroups] = useState<Record<string, Player[]>>({})
@@ -731,6 +733,26 @@ export function TournamentForm({
                   />
                 </div>
                 <p className="text-xs text-gray-500">השם שיופיע למשתמש בעת התשלום</p>
+              </div>
+            </div>
+
+            <div className="space-y-4 border p-4 rounded-md bg-green-50 mt-4">
+              <h3 className="font-medium text-lg text-green-700">פרטי תשלום באמצעות Paybox</h3>
+              
+              <div className="flex flex-col space-y-1.5">
+                <Label htmlFor="payboxPaymentLink" className="text-green-700">קישור לתשלום ב-Paybox</Label>
+                <div className="relative">
+                  <LinkIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-green-500" />
+                  <Input
+                    id="payboxPaymentLink"
+                    name="payboxPaymentLink"
+                    placeholder="הזן קישור לתשלום (https://payboxapp.page.link/...)"
+                    value={formData.payboxPaymentLink}
+                    onChange={handleChange}
+                    className="pl-8 border-green-200 focus:border-green-400"
+                  />
+                </div>
+                <p className="text-xs text-gray-500">קישור ייחודי שיצרת באפליקציית Paybox לקבלת תשלומים</p>
               </div>
             </div>
 
@@ -1364,6 +1386,137 @@ export function TournamentForm({
                 </div>
               </div>
             )}
+
+            <TabsContent value="payment">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <DollarSign className="h-5 w-5 text-blue-600" />
+                    פרטי תשלום
+                  </CardTitle>
+                  <CardDescription>
+                    הגדר את עלות הטורניר ופרטי התשלום
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="price">מחיר השתתפות (₪)</Label>
+                      <Input
+                        id="price"
+                        name="price"
+                        type="number"
+                        value={formData.price}
+                        onChange={handleChange}
+                        placeholder="לדוגמה: 50"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="registrationDeadline">תאריך אחרון להרשמה</Label>
+                      <Input
+                        id="registrationDeadline"
+                        name="registrationDeadline"
+                        type="datetime-local"
+                        value={formData.registrationDeadline}
+                        onChange={handleChange}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-4">
+                    <h3 className="text-md font-medium mb-2">הגדרות תשלום ביט</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="bitPaymentPhone">
+                          מספר טלפון לתשלום ביט
+                        </Label>
+                        <Input
+                          id="bitPaymentPhone"
+                          name="bitPaymentPhone"
+                          value={formData.bitPaymentPhone}
+                          onChange={handleChange}
+                          placeholder="לדוגמה: 050-1234567"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          המספר אליו ישלמו המשתתפים באמצעות ביט
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="bitPaymentName">
+                          שם לתשלום ביט
+                        </Label>
+                        <Input
+                          id="bitPaymentName"
+                          name="bitPaymentName"
+                          value={formData.bitPaymentName}
+                          onChange={handleChange}
+                          placeholder="לדוגמה: טורניר פינג פונג"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          שם שיופיע באפליקציית ביט בעת התשלום
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-4">
+                    <h3 className="text-md font-medium mb-2">הגדרות תשלום Paybox</h3>
+                    <div className="space-y-2">
+                      <Label htmlFor="payboxPaymentLink">
+                        קישור לתשלום ב-Paybox
+                      </Label>
+                      <Input
+                        id="payboxPaymentLink"
+                        name="payboxPaymentLink"
+                        value={formData.payboxPaymentLink}
+                        onChange={handleChange}
+                        placeholder="לדוגמה: https://payboxapp.page.link/YOUR_LINK"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        הקישור לתשלום שיצרת באפליקציית Paybox
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-4">
+                    <h3 className="text-md font-medium mb-2">פרסים</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="firstPlacePrize">
+                          <span className="flex items-center gap-1">
+                            <Medal className="h-4 w-4 text-yellow-500" /> פרס מקום ראשון
+                          </span>
+                        </Label>
+                        <Input
+                          id="firstPlacePrize"
+                          name="firstPlacePrize"
+                          value={formData.firstPlacePrize}
+                          onChange={handleChange}
+                          placeholder="לדוגמה: 500₪ + גביע"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="secondPlacePrize">
+                          <span className="flex items-center gap-1">
+                            <Medal className="h-4 w-4 text-gray-400" /> פרס מקום שני
+                          </span>
+                        </Label>
+                        <Input
+                          id="secondPlacePrize"
+                          name="secondPlacePrize"
+                          value={formData.secondPlacePrize}
+                          onChange={handleChange}
+                          placeholder="לדוגמה: 250₪ + מדליה"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
           </CardContent>
           <CardFooter>
             <Button 
