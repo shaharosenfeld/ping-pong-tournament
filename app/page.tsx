@@ -353,9 +353,10 @@ export default function HomePage() {
                   <Image
                     src="/placeholder-logo.png"
                     alt="PaddleBot Logo"
-                    width={40}
-                    height={40}
+                    width={48}
+                    height={48}
                     className="object-contain"
+                    priority
                   />
                 </div>
               </div>
