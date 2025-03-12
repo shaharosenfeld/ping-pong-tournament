@@ -1,11 +1,4 @@
 {
   "version": 2,
-  "framework": "nextjs",
-  "buildCommand": "npm run build",
-  "installCommand": "npm install",
-  "outputDirectory": ".next",
-  "env": {
-    "PRISMA_MIGRATE_SKIP_GENERATE": "false"
-  },
-  "regions": ["iad1"]
+  "framework": "nextjs"
 } 
