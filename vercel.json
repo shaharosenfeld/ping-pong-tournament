@@ -13,8 +13,5 @@
   "env": {
     "PRISMA_MIGRATE_SKIP_GENERATE": "false"
   },
-  "buildEnv": {
-    "DATABASE_URL": "${env.DATABASE_URL}"
-  },
   "regions": ["gcp-us-central1"]
 } 
