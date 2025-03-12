@@ -1012,13 +1012,13 @@ export default function StatsPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 divide-y-2 sm:divide-x-2 sm:divide-y-2 divide-gray-100">
                     <div className="p-4 text-center">
                       <div className="text-3xl font-bold text-blue-600">
-                        {players.reduce((acc, p) => acc + p.winRate, 0) / (players.length || 1)}%
+                        {Math.round(players.reduce((acc, p) => acc + p.winRate, 0) / (players.length || 1))}%
                       </div>
                       <div className="text-sm text-muted-foreground">אחוז ניצחונות ממוצע</div>
                     </div>
                     <div className="p-4 text-center">
                       <div className="text-3xl font-bold text-green-600">
-                        {players.reduce((acc, p) => acc + p.level, 0) / (players.length || 1) || 0}
+                        {(players.reduce((acc, p) => acc + p.level, 0) / (players.length || 1) || 0).toFixed(1)}
                       </div>
                       <div className="text-sm text-muted-foreground">רמה ממוצעת</div>
                     </div>
