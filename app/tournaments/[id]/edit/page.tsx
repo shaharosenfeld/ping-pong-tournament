@@ -43,6 +43,23 @@ export default function EditTournamentPage() {
   const [authError, setAuthError] = useState(false)
 
   useEffect(() => {
+    // First, verify we have admin token
+    const adminToken = localStorage.getItem('adminToken')
+    if (!adminToken) {
+      setAuthError(true)
+      toast({
+        title: "שגיאת הרשאות",
+        description: "אין לך הרשאה לעריכת טורניר. נא להתחבר מחדש.",
+        variant: "destructive",
+      })
+      
+      // Redirect to login after a short delay
+      setTimeout(() => {
+        router.push('/login?returnTo=' + encodeURIComponent(window.location.pathname))
+      }, 2000)
+      return
+    }
+    
     const fetchTournament = async () => {
       if (!tournamentId) {
         toast({
@@ -57,21 +74,18 @@ export default function EditTournamentPage() {
       try {
         console.log(`Fetching tournament data for ID: ${tournamentId}`)
         
-        // Get admin token from localStorage
-        const adminToken = localStorage.getItem('adminToken')
-        if (!adminToken) {
-          setAuthError(true)
-          throw new Error('Admin token missing')
-        }
-        
+        // Setting up request with improved headers
         const response = await fetch(`/api/tournaments/${tournamentId}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${adminToken}`,
             'X-Admin-Token': adminToken,
+            'X-Is-Admin': 'true',
             'Cache-Control': 'no-cache'
-          }
+          },
+          cache: 'no-store',
+          credentials: 'include'
         })
         
         if (response.status === 401) {
@@ -98,6 +112,10 @@ export default function EditTournamentPage() {
             description: "אין לך הרשאה לעריכת טורניר. נא להתחבר מחדש.",
             variant: "destructive",
           })
+          
+          // Clear tokens as they might be invalid
+          localStorage.removeItem('adminToken')
+          localStorage.removeItem('isAdmin')
           
           // Redirect to login after a short delay
           setTimeout(() => {

@@ -289,6 +289,10 @@ export function TournamentForm({
       
       if (mode === 'edit') {
         // In edit mode, only send fields that should be editable
+        // Clean payment-related fields
+        const cleanPhoneNumber = formData.bitPaymentPhone ? 
+          formData.bitPaymentPhone.replace(/\D/g, '') : '';
+                
         apiData = {
           name: formData.name,
           description: formData.description,
@@ -297,13 +301,13 @@ export function TournamentForm({
           status: formData.status,
           players: selectedPlayers,
           price: formData.price ? parseFloat(formData.price) : null,
-          firstPlacePrize: formData.firstPlacePrize,
-          secondPlacePrize: formData.secondPlacePrize,
+          firstPlacePrize: formData.firstPlacePrize || null,
+          secondPlacePrize: formData.secondPlacePrize || null,
           registrationOpen: formData.registrationOpen,
-          registrationDeadline: formData.registrationDeadline,
-          bitPaymentPhone: formData.bitPaymentPhone,
-          bitPaymentName: formData.bitPaymentName,
-          payboxPaymentLink: formData.payboxPaymentLink
+          registrationDeadline: formData.registrationDeadline || null,
+          bitPaymentPhone: cleanPhoneNumber || null,
+          bitPaymentName: formData.bitPaymentName || null,
+          payboxPaymentLink: formData.payboxPaymentLink || null
         }
       } else {
         // In create mode
@@ -429,14 +433,19 @@ export function TournamentForm({
       const headers = {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${authToken}`,
-        'X-Admin-Token': authToken
+        'X-Admin-Token': authToken,
+        'X-Is-Admin': 'true'
       };
+      
+      console.log(`Sending ${method} request to ${url} with data:`, JSON.stringify(apiData));
       
       // Send request to API
       const response = await fetch(url, {
         method,
         headers,
         body: JSON.stringify(apiData),
+        cache: 'no-store',
+        credentials: 'include'
       });
       
       if (!response.ok) {
@@ -458,9 +467,20 @@ export function TournamentForm({
           return;
         }
         
+        // Log response to help diagnose issues
+        const responseText = await response.text();
+        console.error(`API Error Response: ${response.status} - ${responseText}`);
+        
         // Handle other errors
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        throw new Error(`Failed to ${mode === 'edit' ? 'update' : 'create'} tournament: ${errorData.error || response.statusText}`);
+        let errorMessage;
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.error || 'Unknown error';
+        } catch {
+          errorMessage = responseText || 'Unknown error';
+        }
+        
+        throw new Error(`Failed to ${mode === 'edit' ? 'update' : 'create'} tournament: ${errorMessage}`);
       }
       
       // Success

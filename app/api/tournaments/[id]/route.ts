@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import { cookies } from 'next/headers'
-import { validateServerAdminToken } from '@/lib/admin-utils'
+import { validateAdminAuth } from '@/lib/admin-utils'
 
 const prisma = new PrismaClient()
 
@@ -43,51 +43,6 @@ export async function GET(request: Request, { params }: { params: { id: string }
   }
 }
 
-// הרחבת מנגנון בדיקת ההרשאות
-// פונקציה מקומית לבדיקת הרשאות שתשמש אותנו בכל המתודות
-function validateAdminAuth(request: Request): boolean {
-  console.log('validateAdminAuth: Checking admin permissions from headers');
-  
-  // בדיקת הרשאות מנהל - הרחבת הבדיקה לכלול טוקנים שונים
-  const authHeader = request.headers.get('Authorization');
-  const adminTokenHeader = request.headers.get('X-Admin-Token');
-  const isAdminHeader = request.headers.get('X-Is-Admin');
-  
-  console.log('validateAdminAuth: Auth headers:', { 
-    Authorization: authHeader,
-    'X-Admin-Token': adminTokenHeader,
-    'X-Is-Admin': isAdminHeader
-  });
-  
-  // בדיקה יותר מקיפה - מאפשר אימות גם דרך כותרות מותאמות אישית
-  let isAuthenticated = false;
-  
-  // בדיקת ה-Authorization header הסטנדרטי
-  if (authHeader && validateServerAdminToken(authHeader)) {
-    console.log('validateAdminAuth: Authentication successful via Authorization header');
-    isAuthenticated = true;
-  } 
-  // בדיקת הכותרת המותאמת אישית
-  else if (adminTokenHeader && adminTokenHeader.length >= 10) {
-    console.log('validateAdminAuth: Authentication successful via X-Admin-Token header');
-    isAuthenticated = true;
-  }
-  // בדיקה שיש X-Is-Admin וגם טוקן כלשהו
-  else if (isAdminHeader === 'true' && (authHeader || adminTokenHeader)) {
-    console.log('validateAdminAuth: Authentication successful via X-Is-Admin flag');
-    isAuthenticated = true;
-  }
-  
-  if (!isAuthenticated) {
-    console.error('validateAdminAuth: Admin permission check failed');
-    console.error('Auth header value:', authHeader);
-    console.error('X-Admin-Token value:', adminTokenHeader);
-    console.error('X-Is-Admin value:', isAdminHeader);
-  }
-  
-  return isAuthenticated;
-}
-
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   // Params must be awaited in Next.js 15.1.0
   const unwrappedParams = await params;
@@ -102,7 +57,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       console.log(`  ${key}: ${value}`);
     });
     
-    // שימוש בפונקציית הבדיקה החדשה במקום הקוד הקודם שהיה מוערף
+    // שימוש בפונקציית הבדיקה מספריית admin-utils
     if (!validateAdminAuth(request)) {
       console.error('PUT /api/tournaments/[id]: Authentication failed');
       
@@ -145,6 +100,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       updateData.location = body.location;
     }
 
+    // טיפול משופר בפרטי תשלום
     if (body.price !== undefined) {
       console.log("Tournament price update:", body.price, typeof body.price);
       if (body.price === "" || body.price === null) {
@@ -152,40 +108,47 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       } else if (typeof body.price === 'number') {
         updateData.price = body.price;
       } else {
-        updateData.price = parseFloat(body.price);
+        // נסיון להמיר למספר - במקרה של כישלון, יהיה null
+        const parsedPrice = parseFloat(body.price);
+        updateData.price = !isNaN(parsedPrice) ? parsedPrice : null;
       }
       console.log("Parsed price:", updateData.price);
     }
 
+    // שיפור טיפול בשדות טקסט - תמיכה בשדות ריקים
     if (body.firstPlacePrize !== undefined) {
-      updateData.firstPlacePrize = body.firstPlacePrize;
+      updateData.firstPlacePrize = body.firstPlacePrize || null;
     }
 
     if (body.secondPlacePrize !== undefined) {
-      updateData.secondPlacePrize = body.secondPlacePrize;
+      updateData.secondPlacePrize = body.secondPlacePrize || null;
     }
     
-    // הוספת טיפול בשדה registrationOpen
+    // טיפול בשדה registrationOpen
     if (body.registrationOpen !== undefined) {
       console.log("Updating registrationOpen:", body.registrationOpen);
       updateData.registrationOpen = !!body.registrationOpen; // המרה לבוליאני
     }
     
-    // הוספת טיפול בשדה registrationDeadline
+    // טיפול בשדה registrationDeadline
     if (body.registrationDeadline !== undefined) {
       updateData.registrationDeadline = body.registrationDeadline ? new Date(body.registrationDeadline) : null;
     }
     
+    // שיפור טיפול בפרטי תשלום bit
     if (body.bitPaymentName !== undefined) {
-      updateData.bitPaymentName = body.bitPaymentName;
+      updateData.bitPaymentName = body.bitPaymentName || null;
     }
 
     if (body.bitPaymentPhone !== undefined) {
-      updateData.bitPaymentPhone = body.bitPaymentPhone;
+      // ניקוי מספר טלפון - להשאיר רק ספרות
+      const cleanPhone = body.bitPaymentPhone ? 
+        body.bitPaymentPhone.replace(/\D/g, '') : null;
+      updateData.bitPaymentPhone = cleanPhone;
     }
     
     if (body.payboxPaymentLink !== undefined) {
-      updateData.payboxPaymentLink = body.payboxPaymentLink;
+      updateData.payboxPaymentLink = body.payboxPaymentLink || null;
     }
     
     // בדיקה מיוחדת לעדכון סטטוס הטורניר
@@ -237,6 +200,8 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       // אם הכל תקין, עדכון הסטטוס
       updateData.status = body.status;
     }
+
+    console.log('Final update data:', JSON.stringify(updateData));
 
     // Start a transaction to handle all updates
     const tournament = await prisma.$transaction(async (tx) => {
@@ -419,7 +384,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   } catch (error) {
     console.error('Error updating tournament:', error)
     return NextResponse.json(
-      { error: 'Failed to update tournament' },
+      { error: `Failed to update tournament: ${error instanceof Error ? error.message : 'Unknown error'}` },
       { status: 500 }
     )
   }
@@ -439,7 +404,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
       console.log(`  ${key}: ${value}`);
     });
     
-    // שימוש בפונקציית הבדיקה החדשה במקום הקוד הקודם
+    // שימוש בפונקציית הבדיקה מספריית admin-utils
     if (!validateAdminAuth(request)) {
       console.error('DELETE /api/tournaments/[id]: Authentication failed');
       
@@ -476,7 +441,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
   } catch (error) {
     console.error('Error deleting tournament:', error);
     return NextResponse.json(
-      { error: 'Failed to delete tournament' },
+      { error: `Failed to delete tournament: ${error instanceof Error ? error.message : 'Unknown error'}` },
       { status: 500 }
     );
   }
