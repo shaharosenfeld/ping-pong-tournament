@@ -18,7 +18,6 @@ export async function GET() {
         email: true,
         phone: true,
         avatar: true,
-        initials: true,
         level: true,
         bio: true,
         wins: true,
@@ -152,13 +151,13 @@ export async function POST(request: Request) {
     
     const { name, email, phone, avatar, level, bio } = body
     
-    // Generate initials from name
-    const initials = name
-      .split(' ')
-      .map((part: string) => part[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2)
+    // המרת השם לראשי תיבות כבר לא נדרשת כי אין שדה initials
+    // const initials = name
+    //   .split(' ')
+    //   .map((part: string) => part[0])
+    //   .join('')
+    //   .toUpperCase()
+    //   .slice(0, 2)
 
     const player = await prisma.player.create({
       data: {
@@ -166,7 +165,7 @@ export async function POST(request: Request) {
         email,
         phone,
         avatar,
-        initials,
+        // initials נמחק מכאן - השדה לא קיים בסכמה
         level: parseInt(level) || 3,
         bio,
       }

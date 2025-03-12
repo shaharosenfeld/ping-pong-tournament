@@ -13,7 +13,6 @@ export async function GET() {
             id: true,
             name: true,
             avatar: true,
-            initials: true,
             level: true,
             wins: true,
             losses: true
@@ -24,7 +23,6 @@ export async function GET() {
             id: true,
             name: true,
             avatar: true,
-            initials: true,
             level: true,
             wins: true,
             losses: true
