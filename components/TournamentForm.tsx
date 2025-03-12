@@ -302,6 +302,8 @@ export function TournamentForm({
       
       // Debug auth
       console.log("TournamentForm: טוקן אימות", authToken);
+      const headers = getAuthHeaders();
+      console.log("TournamentForm: כותרות בקשה", Object.fromEntries([...headers.entries()]));
       
       if (mode === 'edit') {
         // In edit mode, only send fields that should be editable
@@ -433,11 +435,14 @@ export function TournamentForm({
       
       const method = mode === 'edit' ? 'PUT' : 'POST'
       
+      console.log(`TournamentForm: שולח בקשה ${method} ל-${url}`);
+      
+      const requestHeaders = getAuthHeaders();
       const response = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders()
+          ...requestHeaders
         },
         body: JSON.stringify(apiData),
       })
@@ -446,6 +451,25 @@ export function TournamentForm({
         try {
           const errorData = await response.json();
           console.error('Server error:', errorData);
+          
+          if (response.status === 401) {
+            console.log("TournamentForm: שגיאת אימות, מנתק ומנווט לדף התחברות");
+            toast({
+              title: "שגיאת אימות",
+              description: errorData.error || "אין הרשאות מנהל. נא להתחבר מחדש.",
+              variant: "destructive",
+            });
+            
+            setTimeout(() => {
+              localStorage.removeItem('isAdmin');
+              localStorage.removeItem('adminToken');
+              window.location.href = '/login?returnTo=' + encodeURIComponent(window.location.pathname);
+            }, 1500);
+            
+            setIsSubmitting(false);
+            return;
+          }
+          
           throw new Error(`Failed to ${mode === 'edit' ? 'update' : 'create'} tournament: ${errorData.error || response.statusText}`);
         } catch (parseError) {
           console.error('Error parsing response:', parseError);

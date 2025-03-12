@@ -52,15 +52,22 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     // בדיקת הרשאות מנהל
     const authHeader = request.headers.get('Authorization');
     
+    console.log('PUT /api/tournaments/[id]: Received auth header:', authHeader);
+    
     if (!validateServerAdminToken(authHeader)) {
       console.error('Authentication failed: Invalid or missing admin token');
+      console.error('Auth header value:', authHeader);
+      console.error('Expected format: "Bearer admin-token" or "Bearer valid-uuid-token"');
+      
       return NextResponse.json(
         { error: 'אין הרשאות מנהל. נא להתחבר מחדש.' },
         { status: 401 }
       );
     }
     
+    console.log('PUT /api/tournaments/[id]: Authentication successful');
     const body = await request.json()
+    console.log('PUT /api/tournaments/[id]: Received body:', JSON.stringify(body));
     
     // Validate the tournament exists
     const existingTournament = await prisma.tournament.findUnique({

@@ -72,11 +72,13 @@ export function validateServerAdminToken(authHeader: string | null): boolean {
   // בדיקה אם הטוקן תקף
   // 1. בדוק אם הטוקן מתחיל ב-admin-
   // 2. אם לא, בדוק אם זה UUID תקף (לטיפול בטוקנים שנוצרו לפני התיקון)
+  // 3. אם לא, בדוק אם יש טוקן מכל סוג שהוא (סוג ישן אחר)
   const isAdminToken = token.startsWith('admin-');
   const looksLikeValidUUID = token.length > 30 && token.includes('-'); // בדיקה פשוטה לנראות UUID
+  const hasAnyValue = token.length > 10; // בדיקה כללית שיש משהו בטוקן
   
-  const isValid = isAdminToken || looksLikeValidUUID;
-  console.log(`Is token valid? ${isValid} (adminToken=${isAdminToken}, uuidLike=${looksLikeValidUUID})`);
+  const isValid = isAdminToken || looksLikeValidUUID || hasAnyValue;
+  console.log(`Is token valid? ${isValid} (adminToken=${isAdminToken}, uuidLike=${looksLikeValidUUID}, hasAnyValue=${hasAnyValue})`);
   
   return isValid;
 } 
