@@ -1,74 +1,97 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { usePathname } from "next/navigation"
-import { ShieldAlert, Loader2 } from "lucide-react"
-import Link from "next/link"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { LogIn } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Shield, AlertTriangle, RefreshCcw } from "lucide-react"
+import { validateClientAdmin } from "@/lib/admin-utils"
 
 export default function AdminCheck({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname()
-  const [accessState, setAccessState] = useState<'loading' | 'allowed' | 'denied'>('loading')
-  
+  const router = useRouter()
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
+  const [isClearing, setIsClearing] = useState(false)
+
   useEffect(() => {
-    // בדיקה פשוטה לאחר השהייה קצרה
-    const timer = setTimeout(() => {
+    // מבצע בדיקת מנהל בצד הלקוח בעזרת הפונקציה שעדכנו
+    const checkAdmin = () => {
       try {
-        // בדיקה פשוטה - האם יש טוקן בלוקאל סטורג׳
-        const hasToken = !!localStorage.getItem('adminToken')
-        console.log("AdminCheck: בדיקה פשוטה - האם יש טוקן:", hasToken)
-        
-        if (hasToken) {
-          console.log("AdminCheck: גישה אושרה בבדיקה פשוטה")
-          // וידוא ששדה isAdmin קיים גם הוא
-          localStorage.setItem('isAdmin', 'true')
-          setAccessState('allowed')
-        } else {
-          console.log("AdminCheck: אין גישה בבדיקה פשוטה")
-          setAccessState('denied')
-        }
+        const isAdminValid = validateClientAdmin()
+        console.log("AdminCheck: Is admin valid?", isAdminValid)
+        setIsAdmin(isAdminValid)
       } catch (error) {
-        console.error("AdminCheck error:", error)
-        setAccessState('denied')
+        console.error("Error checking admin status:", error)
+        setIsAdmin(false)
       }
-    }, 700)
+    }
     
-    return () => clearTimeout(timer)
+    checkAdmin()
   }, [])
-  
-  // בזמן טעינה מציגים אנימצית טעינה
-  if (accessState === 'loading') {
+
+  // פונקציה לניקוי נתוני אימות ומעבר להתחברות מחדש
+  const handleClearAuth = () => {
+    setIsClearing(true)
+    try {
+      localStorage.removeItem('adminToken')
+      localStorage.removeItem('isAdmin')
+      localStorage.removeItem('isAuthenticated')
+      
+      setTimeout(() => {
+        router.push('/login?returnTo=' + encodeURIComponent(window.location.pathname))
+      }, 1000)
+    } catch (error) {
+      console.error('Error clearing auth data:', error)
+      setIsClearing(false)
+    }
+  }
+
+  if (isAdmin === null) {
+    // מצב טעינה - בודק הרשאות
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-blue-50 to-white">
-        <Loader2 className="h-8 w-8 text-blue-500 animate-spin mb-2" />
-        <p className="text-blue-600">טוען לוח בקרה...</p>
+      <div className="flex flex-col items-center justify-center min-h-[50vh] p-8">
+        <Shield className="h-12 w-12 text-primary animate-pulse mb-4" />
+        <h2 className="text-xl font-semibold mb-2">בודק הרשאות מנהל...</h2>
+        <p className="text-muted-foreground">אנא המתן</p>
       </div>
     )
   }
-  
-  // במקרה של בעיית הרשאה - מציגים כפתור התחברות
-  if (accessState === 'denied') {
+
+  if (!isAdmin) {
+    // אין הרשאות מנהל - הצג הודעת שגיאה ואפשר ניקוי וכניסה מחדש
     return (
-      <div dir="rtl" className="container mx-auto py-12 flex flex-col items-center justify-center min-h-[70vh]">
-        <div className="bg-red-100 p-6 rounded-full mb-6">
-          <ShieldAlert className="h-16 w-16 text-red-600" />
-        </div>
-        <h2 className="text-2xl font-medium text-red-700 mb-4">גישה מוגבלת למנהלים בלבד</h2>
-        <p className="text-gray-600 mb-8 text-center max-w-md">
-          עליך להתחבר כמנהל כדי לגשת לדף זה.
+      <div className="flex flex-col items-center justify-center min-h-[80vh] p-8">
+        <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
+        <h2 className="text-2xl font-bold mb-2">אין הרשאות מנהל</h2>
+        <p className="text-muted-foreground text-center max-w-md mb-6">
+          נדרשות הרשאות מנהל כדי לגשת לעמוד זה. נא להתחבר עם חשבון מנהל תקף.
         </p>
-        <Link href={`/login?returnTo=${encodeURIComponent(pathname)}`}>
-          <Button className="gap-2 bg-blue-600 hover:bg-blue-700">
-            <LogIn className="h-4 w-4" />
-            התחבר כמנהל
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Button 
+            onClick={handleClearAuth} 
+            variant="destructive"
+            disabled={isClearing}
+            className="flex items-center gap-2"
+          >
+            {isClearing ? (
+              <>
+                <RefreshCcw className="h-4 w-4 animate-spin" />
+                מנקה נתונים...
+              </>
+            ) : (
+              <>נקה נתוני כניסה והתחבר מחדש</>
+            )}
           </Button>
-        </Link>
+          <Button 
+            onClick={() => router.push('/tournaments')}
+            variant="outline"
+          >
+            חזרה לרשימת טורנירים
+          </Button>
+        </div>
       </div>
     )
   }
-  
-  // אם יש הרשאה, מציגים את התוכן
+
+  // יש הרשאות מנהל - הצג את הרכיב המקורי
   return <>{children}</>
 }
 

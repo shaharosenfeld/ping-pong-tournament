@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "../hooks/use-auth"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Plus, Trophy, Users, Edit, Trash2, Table, PlusCircle, CalendarDays } from "lucide-react"
+import { ArrowLeft, Plus, Trophy, Users, Edit, Trash2, Table, PlusCircle, CalendarDays, Settings } from "lucide-react"
 import Link from "next/link"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog"
@@ -191,14 +191,26 @@ export default function TournamentsPage() {
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
-          <h1 className="text-3xl font-bold">תחרויות</h1>
+          <h1 className="text-3xl font-bold">טורנירים</h1>
         </div>
-        {isAdmin && (
-          <Button onClick={() => setShowNewTournamentForm(!showNewTournamentForm)}>
-            <Plus className="mr-2 h-4 w-4" />
-            {showNewTournamentForm ? "סגור טופס" : "צור תחרות"}
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <Link href="/admin/settings">
+              <Button variant="outline" size="sm" className="flex gap-1.5 items-center">
+                <Settings className="h-4 w-4" />
+                <span>הגדרות</span>
+              </Button>
+            </Link>
+          )}
+          {isAdmin && (
+            <Link href="/tournaments/new">
+              <Button className="flex gap-1.5 items-center">
+                <Plus className="h-4 w-4" />
+                <span>יצירת טורניר</span>
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
 
       {showNewTournamentForm && isAdmin && (

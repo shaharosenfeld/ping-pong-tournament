@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
-import { validateServerAdminToken } from '@/lib/admin-utils'
+import { validateServerAdminToken, validateAdminAuth } from '@/lib/admin-utils'
 
 const prisma = new PrismaClient()
 
@@ -109,50 +109,6 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       { status: 500 }
     )
   }
-}
-
-// הפונקציה לבדיקת הרשאות מנהל
-function validateAdminAuth(request: Request): boolean {
-  console.log('validateAdminAuth: Checking admin permissions from headers');
-  
-  // בדיקת הרשאות מנהל - הרחבת הבדיקה לכלול טוקנים שונים
-  const authHeader = request.headers.get('Authorization');
-  const adminTokenHeader = request.headers.get('X-Admin-Token');
-  const isAdminHeader = request.headers.get('X-Is-Admin');
-  
-  console.log('validateAdminAuth: Auth headers:', { 
-    Authorization: authHeader,
-    'X-Admin-Token': adminTokenHeader,
-    'X-Is-Admin': isAdminHeader
-  });
-  
-  // בדיקה יותר מקיפה - מאפשר אימות גם דרך כותרות מותאמות אישית
-  let isAuthenticated = false;
-  
-  // בדיקת ה-Authorization header הסטנדרטי
-  if (authHeader && validateServerAdminToken(authHeader)) {
-    console.log('validateAdminAuth: Authentication successful via Authorization header');
-    isAuthenticated = true;
-  } 
-  // בדיקת הכותרת המותאמת אישית
-  else if (adminTokenHeader && adminTokenHeader.length >= 10) {
-    console.log('validateAdminAuth: Authentication successful via X-Admin-Token header');
-    isAuthenticated = true;
-  }
-  // בדיקה שיש X-Is-Admin וגם טוקן כלשהו
-  else if (isAdminHeader === 'true' && (authHeader || adminTokenHeader)) {
-    console.log('validateAdminAuth: Authentication successful via X-Is-Admin flag');
-    isAuthenticated = true;
-  }
-  
-  if (!isAuthenticated) {
-    console.error('validateAdminAuth: Admin permission check failed');
-    console.error('Auth header value:', authHeader);
-    console.error('X-Admin-Token value:', adminTokenHeader);
-    console.error('X-Is-Admin value:', isAdminHeader);
-  }
-  
-  return isAuthenticated;
 }
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {

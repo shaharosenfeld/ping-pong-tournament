@@ -439,64 +439,85 @@ export function TournamentForm({
       
       console.log(`Sending ${method} request to ${url} with data:`, JSON.stringify(apiData));
       
-      // Send request to API
-      const response = await fetch(url, {
-        method,
-        headers,
-        body: JSON.stringify(apiData),
-        cache: 'no-store',
-        credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        // Handle authentication errors
-        if (response.status === 401) {
+      // Send request to API with improved error handling
+      try {
+        const response = await fetch(url, {
+          method,
+          headers,
+          body: JSON.stringify(apiData),
+          cache: 'no-store',
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          // הוספת פרטי שגיאה מהלוג
+          console.error(`API Error Status:`, response.status, response.statusText);
+          
+          // Handle authentication errors
+          if (response.status === 401) {
+            toast({
+              title: "שגיאת אימות",
+              description: "אין הרשאות מנהל. נא להתחבר מחדש.",
+              variant: "destructive",
+            });
+            
+            setTimeout(() => {
+              localStorage.removeItem('isAdmin');
+              localStorage.removeItem('adminToken');
+              window.location.href = '/login?returnTo=' + encodeURIComponent(window.location.pathname);
+            }, 1500);
+            
+            setIsSubmitting(false);
+            return;
+          }
+          
+          // Log response to help diagnose issues
+          const responseText = await response.text();
+          console.error(`API Error Response Body:`, responseText);
+          
+          // Handle other errors
+          let errorMessage;
+          try {
+            const errorData = JSON.parse(responseText);
+            errorMessage = errorData.error || 'Unknown error';
+          } catch {
+            errorMessage = responseText || response.statusText || 'Unknown error';
+          }
+          
+          // הצג הודעת שגיאה יותר ספציפית
           toast({
-            title: "שגיאת אימות",
-            description: "אין הרשאות מנהל. נא להתחבר מחדש.",
+            title: `שגיאה ב${mode === 'edit' ? 'עדכון' : 'יצירת'} הטורניר`,
+            description: `${errorMessage}`,
             variant: "destructive",
           });
-          
-          setTimeout(() => {
-            localStorage.removeItem('isAdmin');
-            localStorage.removeItem('adminToken');
-            window.location.href = '/login?returnTo=' + encodeURIComponent(window.location.pathname);
-          }, 1500);
           
           setIsSubmitting(false);
           return;
         }
         
-        // Log response to help diagnose issues
-        const responseText = await response.text();
-        console.error(`API Error Response: ${response.status} - ${responseText}`);
-        
-        // Handle other errors
-        let errorMessage;
-        try {
-          const errorData = JSON.parse(responseText);
-          errorMessage = errorData.error || 'Unknown error';
-        } catch {
-          errorMessage = responseText || 'Unknown error';
-        }
-        
-        throw new Error(`Failed to ${mode === 'edit' ? 'update' : 'create'} tournament: ${errorMessage}`);
-      }
-      
-      // Success
-      toast({
-        title: mode === 'edit' ? "הטורניר עודכן בהצלחה" : "הטורניר נוצר בהצלחה",
-        description: mode === 'edit' ? "פרטי הטורניר עודכנו במערכת" : "הטורניר נוצר במערכת",
-        variant: "default",
-      })
-      
-      if (onSuccess) {
-        onSuccess()
-      } else {
-        // Default navigation
+        // Success
         const data = await response.json()
-        const tournamentId = data.tournament?.id || data.id
-        router.push(`/tournaments/${tournamentId}`)
+        
+        toast({
+          title: mode === 'edit' ? "הטורניר עודכן בהצלחה" : "הטורניר נוצר בהצלחה",
+          description: mode === 'edit' ? "פרטי הטורניר עודכנו במערכת" : "הטורניר נוצר במערכת",
+          variant: "default",
+        })
+        
+        if (onSuccess) {
+          onSuccess()
+        } else {
+          // Default navigation
+          const tournamentId = data.tournament?.id || data.id
+          router.push(`/tournaments/${tournamentId}`)
+        }
+      } catch (apiError) {
+        console.error('API fetch error:', apiError);
+        toast({
+          title: "שגיאת תקשורת",
+          description: `אירעה שגיאה בתקשורת עם השרת: ${apiError instanceof Error ? apiError.message : 'שגיאה לא ידועה'}`,
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error('Error submitting tournament:', error)
