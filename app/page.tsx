@@ -8,6 +8,7 @@ import { Trophy, Table, Users, BarChart, ArrowUpRight, Calendar, Star } from "lu
 import { Badge } from "@/components/ui/badge"
 import { toast } from "@/components/ui/use-toast"
 import { useAuth } from "./hooks/use-auth"
+import Image from "next/image"
 
 interface RecentTournament {
   id: string
@@ -348,8 +349,14 @@ export default function HomePage() {
           <div className="p-5 md:p-6 rounded-2xl bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950 dark:to-yellow-900">
             <div className="flex flex-col sm:flex-row items-center gap-4">
               <div className="bg-white p-3 rounded-xl shadow-sm">
-                <div className="h-12 w-12 flex items-center justify-center text-xl font-bold text-blue-600 border-2 border-blue-200 rounded-lg">
-                  PaddleBot
+                <div className="h-12 w-12 flex items-center justify-center">
+                  <Image
+                    src="/placeholder-logo.png"
+                    alt="PaddleBot Logo"
+                    width={40}
+                    height={40}
+                    className="object-contain"
+                  />
                 </div>
               </div>
               <div className="flex-1">
