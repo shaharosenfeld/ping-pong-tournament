@@ -1,11 +1,14 @@
 {
   "version": 2,
   "buildCommand": "npm run build",
-  "installCommand": "npm install --no-postinstall",
+  "installCommand": "npm install",
   "builds": [
     {
       "src": "package.json",
       "use": "@vercel/next"
     }
-  ]
+  ],
+  "env": {
+    "PRISMA_SKIP_MIGRATE_IN_PRODUCTION": "true"
+  }
 } 
