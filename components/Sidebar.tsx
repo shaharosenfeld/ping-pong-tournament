@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Trophy, Users, Table as TableIcon, BarChart, Plus, Star, Calendar, Clock, Medal, Menu, HelpCircle, X } from "lucide-react"
+import { Trophy, Users, Table as TableIcon, BarChart, Plus, Star, Calendar, Clock, Medal, Menu, HelpCircle, X, TicketIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
@@ -16,6 +16,7 @@ interface Tournament {
   id: string
   name: string
   status: string
+  registrationOpen?: boolean
 }
 
 interface Match {
@@ -49,6 +50,7 @@ interface Stats {
 
 export function Sidebar() {
   const [tournaments, setTournaments] = useState<Tournament[]>([])
+  const [openForRegistrationTournaments, setOpenForRegistrationTournaments] = useState<Tournament[]>([])
   const [matches, setMatches] = useState<Match[]>([])
   const [players, setPlayers] = useState<Player[]>([])
   const [stats, setStats] = useState<Stats>({
@@ -98,7 +100,13 @@ export function Sidebar() {
           ? tournamentsData.tournaments.filter((t: Tournament) => t.status === 'active').slice(0, 5)
           : []
         
+        // סינון טורנירים פתוחים להרשמה
+        const registrationOpenTournaments = tournamentsData.tournaments
+          ? tournamentsData.tournaments.filter((t: Tournament) => t.registrationOpen).slice(0, 5)
+          : []
+        
         setTournaments(activeTournaments)
+        setOpenForRegistrationTournaments(registrationOpenTournaments)
         
         // סינון השחקנים המובילים לפי דירוג
         const topPlayers = playersData
@@ -186,6 +194,37 @@ export function Sidebar() {
               </Button>
             </Link>
           </div>
+        </div>
+        
+        {/* טורנירים פתוחים להרשמה */}
+        <div className="px-4 py-2">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-lg font-semibold tracking-tight">פתוחים להרשמה</h2>
+            <Badge variant="outline" className="bg-blue-50 text-blue-700">
+              {openForRegistrationTournaments.length}
+            </Badge>
+          </div>
+          {openForRegistrationTournaments.length > 0 ? (
+            <div className="space-y-1">
+              {openForRegistrationTournaments.map((tournament) => (
+                <Link
+                  key={tournament.id}
+                  href={`/tournaments/register/${tournament.id}`}
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center rounded-md px-2 py-1.5 text-sm hover:bg-muted"
+                >
+                  <TicketIcon className="h-4 w-4 ml-2" />
+                  <span className="truncate">{tournament.name}</span>
+                </Link>
+              ))}
+            </div>
+          ) : loading ? (
+            <div className="flex justify-center py-2">
+              <div className="animate-pulse h-6 w-32 bg-gray-200 rounded"></div>
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground py-2">אין טורנירים פתוחים להרשמה כרגע</div>
+          )}
         </div>
   
         {/* שחקנים מובילים */}

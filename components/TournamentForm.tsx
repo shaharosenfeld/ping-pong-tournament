@@ -259,17 +259,6 @@ export function TournamentForm({
     setIsSubmitting(true)
     
     try {
-      // Validate min number of players for tournament
-      if (selectedPlayers.length < 2) {
-        toast({
-          title: "שגיאה",
-          description: "חייב לבחור לפחות 2 שחקנים",
-          variant: "destructive",
-        })
-        setIsSubmitting(false)
-        return
-      }
-      
       // לוג יותר מפורט של localStorage ומצב התחברות
       console.log("TournamentForm: מצב localStorage לפני בדיקת אימות:", {
         isAdmin: localStorage.getItem('isAdmin'),
@@ -371,7 +360,7 @@ export function TournamentForm({
         }
         
         // Validate form
-        if (!formData.name || !formData.startDate || selectedPlayers.length === 0) {
+        if (!formData.name || !formData.startDate) {
           toast({
             title: "שגיאה",
             description: "יש למלא את כל השדות הנדרשים",

@@ -92,8 +92,9 @@ export default function TournamentPage() {
     // ניקוי מספר הטלפון מתווים מיוחדים
     const cleanPhone = tournament.bitPaymentPhone.replace(/[-\s]/g, '');
     
-    // יצירת ה-URL לתשלום בביט
-    const paymentURL = `https://www.bitpay.co.il/he-il/p/?phone=${encodeURIComponent(cleanPhone)}&amount=${encodeURIComponent(tournament.price)}&name=${encodeURIComponent(tournament.bitPaymentName || tournament.name)}`;
+    // יצירת הקישור לביט לפי המבנה החדש
+    // קישור ישיר לאפליקציית ביט שעובד בכל הפלטפורמות
+    const paymentURL = `https://www.bit.co.il/he-il/pay?phone=${encodeURIComponent(cleanPhone)}&amount=${encodeURIComponent(tournament.price)}&description=${encodeURIComponent(tournament.bitPaymentName || `הרשמה לטורניר ${tournament.name}`)}`;
     
     return paymentURL;
   }
