@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
-import { ArrowLeft, Calendar, Edit, MapPin, Plus, Trash2, Trophy, Users, Star, Award, Info, Medal } from "lucide-react"
+import { ArrowLeft, Calendar, Edit, MapPin, Plus, Trash2, Trophy, Users, Star, Award, Info, Medal, DollarSign } from "lucide-react"
 import {
   Dialog,
   DialogClose,
@@ -18,13 +18,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { useAuth } from "@/app/hooks/use-auth"
 import { Input } from "@/components/ui/input"
 import { Loader2 } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { TournamentBracket } from "@/components/tournament-bracket"
 import ConfettiEffect from "@/components/confetti-effect"
+import { useToast } from "@/components/ui/use-toast"
+import { useTournamentBracket } from "@/app/hooks/use-tournament-bracket"
+import { formatDate } from "@/lib/utils"
+import { cn } from "@/lib/utils"
+import TournamentMatches from "@/components/TournamentMatches"
+import TournamentStandings from "@/components/TournamentStandings"
+import { useTournamentBracket as oldUseTournamentBracket } from "@/app/hooks/use-tournament-bracket"
+import TournamentGroups from "@/components/TournamentGroups"
 
 // Import without type issues
 import dynamic from 'next/dynamic'
@@ -79,12 +87,20 @@ interface Tournament {
   price?: number | null
   firstPlacePrize?: string | null
   secondPlacePrize?: string | null
+  registrationOpen: boolean
+  registrationDeadline: string | null
+  bitPaymentPhone?: string | null
+  bitPaymentName?: string | null
 }
 
-export default function TournamentPage({ params }: { params: Promise<{ id: string }> }) {
+export default function TournamentPage() {
   const router = useRouter()
+  const pathname = usePathname()
+  // Extract the ID from pathname
+  const tournamentId = pathname?.split('/').slice(-1)[0] || ''
+  
+  const { toast } = useToast()
   const { isAdmin } = useAuth()
-  const { id } = use(params)
   const [tournament, setTournament] = useState<Tournament | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('matches')
@@ -96,6 +112,8 @@ export default function TournamentPage({ params }: { params: Promise<{ id: strin
   const [showConfetti, setShowConfetti] = useState(false)
   const [confettiShown, setConfettiShown] = useState(false)
   const [generating, setGenerating] = useState(false)
+  const { bracketData, isLoading: isBracketLoading } = 
+    useTournamentBracket(tournamentId, tournament?.format === 'knockout' || tournament?.format === 'groups_knockout')
   
   // Group matches by round
   const groupMatches = tournament?.matches.filter(match => match.stage === 'group') || []
@@ -117,16 +135,23 @@ export default function TournamentPage({ params }: { params: Promise<{ id: strin
 
   const loadTournament = async () => {
     try {
-      const response = await fetch(`/api/tournaments/${id}`)
+      const response = await fetch(`/api/tournaments/${tournamentId}`, {
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      })
       
-      if (!response.ok) {
-        throw new Error('Failed to load tournament')
-      }
-      
+      if (!response.ok) throw new Error('Failed to fetch tournament')
       const data = await response.json()
+      console.log('Tournament data:', data)
       setTournament(data)
     } catch (error) {
-      console.error('Error loading tournament:', error)
+      console.error('Error fetching tournament:', error)
+      toast({
+        title: "שגיאה",
+        description: "לא ניתן לטעון את פרטי הטורניר",
+        variant: "destructive",
+      })
     } finally {
       setIsLoading(false)
     }
@@ -134,7 +159,7 @@ export default function TournamentPage({ params }: { params: Promise<{ id: strin
   
   useEffect(() => {
     loadTournament()
-  }, [id])
+  }, [tournamentId, router, toast])
   
   // הוסף אפקט קונפטי כאשר טוען טורניר שהסתיים לראשונה
   useEffect(() => {
@@ -171,7 +196,7 @@ export default function TournamentPage({ params }: { params: Promise<{ id: strin
         return
       }
       
-      const response = await fetch(`/api/tournaments/${id}/generate-knockout`, {
+      const response = await fetch(`/api/tournaments/${tournamentId}/generate-knockout`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -276,6 +301,25 @@ export default function TournamentPage({ params }: { params: Promise<{ id: strin
     return winner?.name || "לא ידוע"
   }
 
+  // ביצירת קישור ביט שיכלול את כל הפרטים הנדרשים
+  const generateBitPaymentLink = () => {
+    if (!tournament || !tournament.bitPaymentPhone || !tournament.price) return null;
+    
+    // ניקוי מספר הטלפון מתווים מיוחדים
+    const cleanPhone = tournament.bitPaymentPhone.replace(/[-\s]/g, '');
+    
+    // יצירת ה-URL לתשלום בביט
+    const paymentURL = `https://www.bitpay.co.il/he-il/p/?phone=${encodeURIComponent(cleanPhone)}&amount=${encodeURIComponent(tournament.price)}&name=${encodeURIComponent(tournament.bitPaymentName || tournament.name)}`;
+    
+    return paymentURL;
+  }
+
+  const bitPaymentLink = tournament?.price && tournament?.bitPaymentPhone 
+    ? generateBitPaymentLink() 
+    : null;
+
+  const statusInfo = formatStatus(tournament.status)
+
   return (
     <div dir="rtl" className="container mx-auto py-6 space-y-6">
       <ConfettiEffect 
@@ -305,7 +349,7 @@ export default function TournamentPage({ params }: { params: Promise<{ id: strin
                 variant="outline"
                 size="sm"
                 className="border-blue-200 text-blue-700 hover:bg-blue-50"
-                onClick={() => window.location.href = `/tournaments/${id}/edit`}
+                onClick={() => window.location.href = `/tournaments/${tournamentId}/edit`}
               >
                 <Edit className="h-4 w-4 mr-2" />
                 ערוך
@@ -382,7 +426,7 @@ export default function TournamentPage({ params }: { params: Promise<{ id: strin
                         try {
                           const adminToken = localStorage.getItem('adminToken') || `admin-${deletePassword}`;
                           
-                          const response = await fetch(`/api/tournaments/${id}`, {
+                          const response = await fetch(`/api/tournaments/${tournamentId}`, {
                             method: 'DELETE',
                             headers: {
                               'Content-Type': 'application/json',
@@ -455,7 +499,7 @@ export default function TournamentPage({ params }: { params: Promise<{ id: strin
               {tournament.players.length} / 8 שחקנים
             </span>
             {tournament.players.length < 8 && tournament.status !== "completed" && isAdmin && (
-              <Link href={`/tournaments/${id}/players/add`} className="mr-auto">
+              <Link href={`/tournaments/${tournamentId}/players/add`} className="mr-auto">
                 <Button size="sm" variant="outline" className="gap-1 border-blue-300 text-blue-700 hover:bg-blue-100">
                   <Plus className="h-3.5 w-3.5" />
                   <span className="hidden sm:inline">הוסף שחקנים</span>
@@ -534,7 +578,7 @@ export default function TournamentPage({ params }: { params: Promise<{ id: strin
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-semibold text-blue-700">משחקים</h2>
               {tournament.status !== "completed" && isAdmin && (
-                <Link href={`/tournaments/${id}/matches/new`}>
+                <Link href={`/tournaments/${tournamentId}/matches/new`}>
                   <Button size="sm" className="gap-1 bg-green-500 hover:bg-green-600 text-white">
                     <Plus className="h-3.5 w-3.5" />
                     הוסף משחק
@@ -787,7 +831,7 @@ export default function TournamentPage({ params }: { params: Promise<{ id: strin
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-semibold text-blue-700">שחקנים</h2>
               {tournament.players.length < 8 && tournament.status !== "completed" && isAdmin && (
-                <Link href={`/tournaments/${id}/players/add`}>
+                <Link href={`/tournaments/${tournamentId}/players/add`}>
                   <Button size="sm" className="gap-1 bg-green-500 hover:bg-green-600 text-white">
                     <Plus className="h-3.5 w-3.5" />
                     הוסף שחקנים
@@ -841,6 +885,36 @@ export default function TournamentPage({ params }: { params: Promise<{ id: strin
           )}
         </Tabs>
       </div>
+
+      {/* כפתור תשלום ביט אם יש מחיר ומספר ביט */}
+      {bitPaymentLink && tournament.registrationOpen && (
+        <div className="flex justify-center mt-4">
+          <a 
+            href={bitPaymentLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-green-600 text-white hover:bg-green-700 transition-colors"
+          >
+            <DollarSign className="h-4 w-4" />
+            <span>שלם {tournament.price}₪ בביט</span>
+          </a>
+        </div>
+      )}
     </div>
   )
+}
+
+function formatStatus(status: string) {
+  switch (status) {
+    case 'draft':
+      return { label: 'טיוטה', class: 'bg-gray-500' }
+    case 'scheduled':
+      return { label: 'מתוכנן', class: 'bg-blue-500' }
+    case 'active':
+      return { label: 'פעיל', class: 'bg-green-500' }
+    case 'completed':
+      return { label: 'הסתיים', class: 'bg-purple-500' }
+    default:
+      return { label: status, class: 'bg-gray-500' }
+  }
 }

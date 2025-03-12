@@ -48,6 +48,8 @@ interface TournamentFormProps {
     secondPlacePrize?: string
     registrationOpen?: boolean
     registrationDeadline?: string
+    bitPaymentPhone?: string
+    bitPaymentName?: string
   }
   onSuccess?: () => void
 }
@@ -106,7 +108,9 @@ export function TournamentForm({
     firstPlacePrize: initialData?.firstPlacePrize || "",
     secondPlacePrize: initialData?.secondPlacePrize || "",
     registrationOpen: initialData?.registrationOpen || false,
-    registrationDeadline: initialData?.registrationDeadline || ""
+    registrationDeadline: initialData?.registrationDeadline || "",
+    bitPaymentPhone: initialData?.bitPaymentPhone || "",
+    bitPaymentName: initialData?.bitPaymentName || ""
   })
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>(initialData?.players || [])
   const [playerGroups, setPlayerGroups] = useState<Record<string, Player[]>>({})
@@ -350,7 +354,9 @@ export function TournamentForm({
           firstPlacePrize: formData.firstPlacePrize,
           secondPlacePrize: formData.secondPlacePrize,
           registrationOpen: formData.registrationOpen,
-          registrationDeadline: formData.registrationDeadline
+          registrationDeadline: formData.registrationDeadline,
+          bitPaymentPhone: formData.bitPaymentPhone,
+          bitPaymentName: formData.bitPaymentName
         }
       } else {
         // בדיקת הרשאות מנהל
@@ -458,7 +464,9 @@ export function TournamentForm({
           players: selectedPlayers,
           matchGenerationMode,
           manualMatches: matchGenerationMode === 'manual' ? manualMatches : undefined,
-          groupAssignments: formData.format === 'groups_knockout' ? groupAssignments : undefined
+          groupAssignments: formData.format === 'groups_knockout' ? groupAssignments : undefined,
+          bitPaymentPhone: formData.bitPaymentPhone,
+          bitPaymentName: formData.bitPaymentName
         }
       }
       
@@ -698,6 +706,42 @@ export function TournamentForm({
                   onChange={handleChange}
                   className="pl-8 border-blue-200 focus:border-blue-400"
                 />
+              </div>
+            </div>
+
+            <div className="space-y-4 border p-4 rounded-md bg-blue-50 mt-4">
+              <h3 className="font-medium text-lg text-blue-700">פרטי תשלום באמצעות ביט</h3>
+              
+              <div className="flex flex-col space-y-1.5">
+                <Label htmlFor="bitPaymentPhone" className="text-blue-700">מספר טלפון לקבלת תשלום ביט</Label>
+                <div className="relative">
+                  <DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-blue-500" />
+                  <Input
+                    id="bitPaymentPhone"
+                    name="bitPaymentPhone"
+                    placeholder="הזן מספר טלפון (050-1234567)"
+                    value={formData.bitPaymentPhone}
+                    onChange={handleChange}
+                    className="pl-8 border-blue-200 focus:border-blue-400"
+                  />
+                </div>
+                <p className="text-xs text-gray-500">מספר הטלפון אליו יישלחו תשלומי הביט</p>
+              </div>
+
+              <div className="flex flex-col space-y-1.5">
+                <Label htmlFor="bitPaymentName" className="text-blue-700">שם לתשלום בביט</Label>
+                <div className="relative">
+                  <Users className="absolute left-2.5 top-2.5 h-4 w-4 text-blue-500" />
+                  <Input
+                    id="bitPaymentName"
+                    name="bitPaymentName"
+                    placeholder="השם שיופיע בביט (לדוגמה: איגוד פינג פונג)"
+                    value={formData.bitPaymentName}
+                    onChange={handleChange}
+                    className="pl-8 border-blue-200 focus:border-blue-400"
+                  />
+                </div>
+                <p className="text-xs text-gray-500">השם שיופיע למשתמש בעת התשלום</p>
               </div>
             </div>
 
