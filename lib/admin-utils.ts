@@ -31,7 +31,7 @@ export function getAuthHeaders(): Headers {
     'Content-Type': 'application/json'
   });
   
-  // הוסף כותרת אוטוריזציה רק אם יש טוקן תקף
+  // בדיקה מחמירה יותר - תמיד תנסה להוסיף את כותרות האימות אם יש טוקן
   if (typeof window !== 'undefined') {
     try {
       console.log('getAuthHeaders: בדיקת localStorage וטוקנים');
@@ -51,8 +51,8 @@ export function getAuthHeaders(): Headers {
         }
       }
       
-      // הוספנו בדיקה כפולה - גם טוקן וגם סטטוס מנהל
-      if (adminToken && isAdmin === 'true') {
+      // נוסיף את הכותרות תמיד אם יש טוקן, גם אם isAdmin אינו מוגדר
+      if (adminToken) {
         const authHeader = `Bearer ${adminToken}`;
         console.log('getAuthHeaders: setting Authorization header:', authHeader);
         headers.append('Authorization', authHeader);
@@ -62,8 +62,16 @@ export function getAuthHeaders(): Headers {
         
         // הוספת כותרת נוספת שעוזרת במקרה של ניתוב או middleware משולב
         headers.append('X-Is-Admin', 'true');
+        
+        // ניסיון להוסיף כותרת בצורה אחרת
+        headers.set('Authorization', authHeader);
+        headers.set('X-Admin-Token', adminToken);
+        headers.set('X-Is-Admin', 'true');
+        
+        console.log('getAuthHeaders: Headers after setting:', 
+          Object.fromEntries([...headers.entries()]));
       } else {
-        console.log('getAuthHeaders: No admin token or isAdmin flag found in localStorage');
+        console.log('getAuthHeaders: No admin token found in localStorage');
       }
     } catch (error) {
       console.error('getAuthHeaders: Error accessing localStorage:', error);

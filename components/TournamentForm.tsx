@@ -266,6 +266,13 @@ export function TournamentForm({
         return
       }
       
+      // לוג יותר מפורט של localStorage ומצב התחברות
+      console.log("TournamentForm: מצב localStorage לפני בדיקת אימות:", {
+        isAdmin: localStorage.getItem('isAdmin'),
+        adminToken: localStorage.getItem('adminToken'),
+        isAuthenticated: localStorage.getItem('isAuthenticated')
+      });
+      
       // בדיקת אימות לפני שליחת הנתונים
       const authToken = localStorage.getItem('adminToken');
       console.log("TournamentForm: בודק טוקן לפני שליחה:", authToken);
@@ -303,7 +310,32 @@ export function TournamentForm({
       // Debug auth
       console.log("TournamentForm: טוקן אימות", authToken);
       const headers = getAuthHeaders();
-      console.log("TournamentForm: כותרות בקשה", Object.fromEntries([...headers.entries()]));
+      
+      // לוג השדות של headers
+      const headerEntries = [...headers.entries()];
+      console.log("TournamentForm: כותרות בקשה", Object.fromEntries(headerEntries));
+      
+      // בדיקה האם יש כותרת אימות
+      const hasAuthHeader = headers.has('Authorization');
+      const hasAdminTokenHeader = headers.has('X-Admin-Token');
+      const hasIsAdminHeader = headers.has('X-Is-Admin');
+      
+      console.log("TournamentForm: בדיקת כותרות אימות", {
+        hasAuthHeader,
+        hasAdminTokenHeader,
+        hasIsAdminHeader,
+        authHeader: headers.get('Authorization'),
+        adminTokenHeader: headers.get('X-Admin-Token'),
+        isAdminHeader: headers.get('X-Is-Admin')
+      });
+      
+      // שיטה חלופית לשליחת הטוקנים
+      if (!hasAuthHeader && !hasAdminTokenHeader && authToken) {
+        console.log("TournamentForm: אין כותרת אימות, מוסיף ידנית");
+        headers.append('Authorization', `Bearer ${authToken}`);
+        headers.append('X-Admin-Token', authToken);
+        headers.append('X-Is-Admin', 'true');
+      }
       
       if (mode === 'edit') {
         // In edit mode, only send fields that should be editable
@@ -437,15 +469,24 @@ export function TournamentForm({
       
       console.log(`TournamentForm: שולח בקשה ${method} ל-${url}`);
       
-      const requestHeaders = getAuthHeaders();
+      // ניסיון לשליחת הבקשה עם headers בצורה אחרת - כותרות ידניות במקום שימוש ב-getAuthHeaders
+      const manualHeaders = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+        'X-Admin-Token': localStorage.getItem('adminToken') || '',
+        'X-Is-Admin': 'true'
+      };
+      
+      console.log('TournamentForm: שולח עם כותרות ידניות:', manualHeaders);
+      
+      // שליחת הבקשה ל-API
       const response = await fetch(url, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-          ...requestHeaders
-        },
+        headers: manualHeaders,
         body: JSON.stringify(apiData),
-      })
+      });
+      
+      console.log('TournamentForm: תגובה התקבלה, סטטוס:', response.status);
       
       if (!response.ok) {
         try {
