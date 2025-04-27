@@ -165,7 +165,7 @@ export default function PaymentMethodSelector({
         <TabsContent value="bit" className="mt-4">
           <div className="bg-blue-50 p-6 rounded-lg space-y-4">
             <div className="flex items-center space-x-3">
-              <img src="/bit-logo.png" alt="ביט" className="h-8 w-8" />
+              <img src="/bit-logo.svg" alt="ביט" className="h-8 w-8" />
               <div>
                 <h4 className="font-medium text-lg">תשלום באמצעות ביט</h4>
                 <p className="text-sm text-gray-600">העברה מהירה וקלה לטלפון {bitPaymentPhone}</p>

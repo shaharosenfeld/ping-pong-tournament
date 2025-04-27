@@ -19,12 +19,11 @@ async function main() {
   console.log('Running database migrations...');
   
   try {
-    let command = 'npx prisma migrate deploy';
+    // Use the same command for both environments - without the unsupported flag
+    const command = 'npx prisma migrate deploy';
     
-    // If in production, use a shorter timeout to avoid hanging deployments
     if (isVercelProduction) {
-      console.log('⚠️ Running in Vercel production - using optimized migrate command');
-      command = 'npx prisma migrate deploy --skip-generate';
+      console.log('⚠️ Running in Vercel production environment');
     }
     
     console.log(`Executing: ${command}`);

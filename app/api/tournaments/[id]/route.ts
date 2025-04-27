@@ -1,9 +1,23 @@
 import { NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
 import { cookies } from 'next/headers'
 import { validateAdminAuth } from '@/lib/admin-utils'
+import { prisma } from '@/lib/prisma'
 
-const prisma = new PrismaClient()
+// Add a type interface for the Match object
+interface Match {
+  id: string;
+  tournamentId: string;
+  player1Id: string;
+  player2Id: string;
+  round: string | number;
+  stage?: string;
+  status: string;
+  date: Date;
+  player1?: any;
+  player2?: any;
+  player1Score?: number | null;
+  player2Score?: number | null;
+}
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   // Params must be awaited in Next.js 15.1.0
@@ -158,24 +172,24 @@ export async function PUT(request: Request, { params }: { params: { id: string }
         console.log("Attempting to complete tournament:", id)
         
         // בדיקה אם יש משחקי נוק-אאוט
-        const knockoutMatches = existingTournament.matches.filter(m => m.stage === 'knockout');
+        const knockoutMatches = existingTournament.matches.filter((m: Match) => m.stage === 'knockout');
         
         if (knockoutMatches.length > 0) {
           console.log("Tournament has knockout matches:", knockoutMatches.length)
           
           // מציאת הסיבוב המקסימלי
-          const roundValues = knockoutMatches.map(m => {
+          const roundValues = knockoutMatches.map((m: Match) => {
             const roundNum = typeof m.round === 'string' ? parseInt(m.round) : 
                             typeof m.round === 'number' ? m.round : 0;
             return isNaN(roundNum) ? 0 : roundNum;
-          }).filter(r => r > 0);
+          }).filter((r: number) => r > 0);
           
           if (roundValues.length > 0) {
             const maxRound = Math.max(...roundValues);
             console.log("Max round in tournament:", maxRound)
             
             // בדיקה אם יש משחקי גמר
-            const finalMatches = knockoutMatches.filter(m => {
+            const finalMatches = knockoutMatches.filter((m: Match) => {
               const roundNum = typeof m.round === 'string' ? parseInt(m.round) : 
                               typeof m.round === 'number' ? m.round : 0;
               return roundNum === maxRound;
@@ -184,7 +198,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
             console.log("Final matches:", finalMatches.length)
             
             // בדיקה אם כל משחקי הגמר הסתיימו
-            const allFinalMatchesCompleted = finalMatches.every(m => m.status === 'completed');
+            const allFinalMatchesCompleted = finalMatches.every((m: Match) => m.status === 'completed');
             
             if (!allFinalMatchesCompleted) {
               console.log("Not all final matches are completed, cannot complete tournament")
@@ -204,7 +218,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     console.log('Final update data:', JSON.stringify(updateData));
 
     // Start a transaction to handle all updates
-    const tournament = await prisma.$transaction(async (tx) => {
+    const tournament = await prisma.$transaction(async (tx: any) => {
       // Update tournament basic info
       const updatedTournament = await tx.tournament.update({
         where: { id },
@@ -223,7 +237,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       // If players array is provided, update tournament players
       if (body.players) {
         // Find players that were removed (in existing but not in new players list)
-        const existingPlayerIds = existingTournament.players.map(p => p.id);
+        const existingPlayerIds = existingTournament.players.map((p: { id: string }) => p.id);
         const newPlayerIds = body.players;
         const removedPlayerIds = existingPlayerIds.filter((id: string) => !newPlayerIds.includes(id));
         const addedPlayerIds = newPlayerIds.filter((id: string) => !existingPlayerIds.includes(id));

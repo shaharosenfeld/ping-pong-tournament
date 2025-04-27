@@ -11,8 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { SelectGroup } from "@/components/ui/select";
 import { ChevronRight } from "lucide-react";
-import PaymentEvidenceUploader from "@/components/PaymentEvidenceUploader";
-import PaymentMethodSelector from "@/components/PaymentMethodSelector";
+import PaymentEvidenceUploader from "@/app/components/PaymentEvidenceUploader";
+import PaymentMethodSelector from "@/app/components/PaymentMethodSelector";
 
 interface Player {
   id: string;
