@@ -1,133 +1,134 @@
 "use client"
 
-import { useState } from 'react';
-import { useToast } from "@/components/ui/use-toast";
+import { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LoaderCircle, Lock, CreditCard } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/use-toast";
+import { Check, CreditCard as CreditCardIcon } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface CreditCardPaymentProps {
   registrationId: string;
-  amount: number;
   tournamentId: string;
+  amount: number;
   onSuccess: () => void;
 }
 
-export default function CreditCardPayment({ 
-  registrationId, 
-  amount, 
+interface CardFormData {
+  cardNumber: string;
+  cardholderName: string;
+  expiryDate: string;
+  cvv: string;
+}
+
+export default function CreditCardPayment({
+  registrationId,
   tournamentId,
-  onSuccess 
+  amount,
+  onSuccess
 }: CreditCardPaymentProps) {
-  const [cardNumber, setCardNumber] = useState('');
-  const [cardHolder, setCardHolder] = useState('');
-  const [expiryDate, setExpiryDate] = useState('');
-  const [cvv, setCvv] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isPaymentComplete, setIsPaymentComplete] = useState(false);
+  const [isComplete, setIsComplete] = useState(false);
+  const [cardNumberPreview, setCardNumberPreview] = useState('');
+  const [formattedExpiry, setFormattedExpiry] = useState('');
   const { toast } = useToast();
   const router = useRouter();
+  
+  const { register, handleSubmit, watch, formState: { errors }, setValue } = useForm<CardFormData>();
+  
+  const cardNumber = watch('cardNumber', '');
+  const expiryDate = watch('expiryDate', '');
 
-  // Format card number with spaces every 4 digits
-  const formatCardNumber = (value: string) => {
-    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-    const matches = v.match(/\d{4,16}/g);
-    const match = matches && matches[0] || '';
-    const parts = [];
-
-    for (let i = 0, len = match.length; i < len; i += 4) {
-      parts.push(match.substring(i, i + 4));
+  // Format card number with spaces for readability (XXXX XXXX XXXX XXXX)
+  useEffect(() => {
+    const formatted = cardNumber
+      .replace(/\s/g, '')
+      .replace(/\D/g, '')
+      .slice(0, 16)
+      .replace(/(\d{4})(?=\d)/g, '$1 ');
+    
+    if (formatted !== cardNumber) {
+      setValue('cardNumber', formatted);
     }
-
-    if (parts.length) {
-      return parts.join(' ');
+    
+    // Create masked preview for display
+    if (formatted) {
+      const lastFourVisible = formatted.slice(-5); // Include the last space + 4 digits
+      const maskedPart = formatted.slice(0, -5).replace(/\d/g, '•');
+      setCardNumberPreview(maskedPart + lastFourVisible);
     } else {
-      return value;
+      setCardNumberPreview('');
     }
-  };
-
+  }, [cardNumber, setValue]);
+  
   // Format expiry date as MM/YY
-  const formatExpiryDate = (value: string) => {
-    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+  useEffect(() => {
+    const expiry = expiryDate.replace(/\D/g, '').slice(0, 4);
     
-    if (v.length >= 2) {
-      return v.slice(0, 2) + (v.length > 2 ? '/' + v.slice(2, 4) : '');
+    if (expiry.length >= 2) {
+      const formatted = `${expiry.slice(0, 2)}/${expiry.slice(2)}`;
+      if (formatted !== expiryDate) {
+        setValue('expiryDate', formatted);
+      }
+      setFormattedExpiry(formatted);
+    } else {
+      if (expiry !== expiryDate) {
+        setValue('expiryDate', expiry);
+      }
+      setFormattedExpiry(expiry);
+    }
+  }, [expiryDate, setValue]);
+  
+  const validateCardNumber = (value: string) => {
+    // Basic validation: must be 16 digits (excluding spaces)
+    return value.replace(/\s/g, '').length === 16 || "מספר כרטיס לא תקין";
+  };
+  
+  const validateExpiry = (value: string) => {
+    // Must match MM/YY format
+    if (!/^\d{2}\/\d{2}$/.test(value)) {
+      return "פורמט לא תקין (MM/YY)";
     }
     
-    return v;
-  };
-
-  const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setCardNumber(formatCardNumber(value));
-  };
-
-  const handleExpiryDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setExpiryDate(formatExpiryDate(value));
-  };
-
-  const handleCvvChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, '').slice(0, 3);
-    setCvv(value);
-  };
-
-  const validateForm = () => {
-    // Basic validation
-    if (!cardNumber || cardNumber.replace(/\s/g, '').length < 16) {
-      toast({
-        title: "מספר כרטיס לא תקין",
-        description: "אנא הזן מספר כרטיס אשראי תקין (16 ספרות)",
-        variant: "destructive",
-      });
-      return false;
+    const [month, year] = value.split('/').map(v => parseInt(v, 10));
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear() % 100; // Get last 2 digits
+    const currentMonth = currentDate.getMonth() + 1; // JS months are 0-based
+    
+    if (month < 1 || month > 12) {
+      return "חודש לא תקין";
     }
-
-    if (!cardHolder) {
-      toast({
-        title: "שם בעל הכרטיס חסר",
-        description: "אנא הזן את שם בעל הכרטיס",
-        variant: "destructive",
-      });
-      return false;
+    
+    if (year < currentYear || (year === currentYear && month < currentMonth)) {
+      return "הכרטיס פג תוקף";
     }
-
-    if (!expiryDate || !expiryDate.includes('/') || expiryDate.length !== 5) {
-      toast({
-        title: "תאריך תפוגה לא תקין",
-        description: "אנא הזן תאריך תפוגה בפורמט MM/YY",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    if (!cvv || cvv.length !== 3) {
-      toast({
-        title: "קוד אבטחה לא תקין",
-        description: "אנא הזן קוד אבטחה (3 ספרות בגב הכרטיס)",
-        variant: "destructive",
-      });
-      return false;
-    }
-
+    
     return true;
   };
-
-  const processPayment = async () => {
-    if (!validateForm()) return;
-
+  
+  const validateCVV = (value: string) => {
+    // Must be 3 or 4 digits
+    return /^\d{3,4}$/.test(value) || "קוד אבטחה לא תקין";
+  };
+  
+  const validateName = (value: string) => {
+    return value.trim().length >= 2 || "יש להזין שם מלא";
+  };
+  
+  const processPayment = async (data: CardFormData) => {
     try {
       setIsProcessing(true);
-
-      // Simulate payment processing with a short delay
+      
+      // Simulate payment processing
       await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // In a real implementation, you would call your payment processor API here
-      // The code below is a placeholder for the actual implementation
-
-      // After successful payment, update the payment status
+      
+      // For simulation purposes, let's assume payment is successful
+      // In a real app, you would integrate with a payment processor here
+      const paymentStatus = 'confirmed';
+      const paymentReference = `CC-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+      
       const response = await fetch('/api/payment-confirmation', {
         method: 'POST',
         headers: {
@@ -136,157 +137,193 @@ export default function CreditCardPayment({
         body: JSON.stringify({
           registrationId,
           paymentMethod: 'credit',
-          paymentStatus: 'confirmed',
-          paymentReference: `credit-${Date.now()}`,
-          notes: `תשלום בכרטיס אשראי - ${cardNumber.slice(-4)}`,
+          paymentStatus,
+          paymentReference,
+          notes: `תשלום כרטיס אשראי - ${data.cardholderName} - ${cardNumberPreview}`
         }),
       });
-
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'שגיאה בעיבוד התשלום');
+        throw new Error('Failed to process payment');
       }
-
-      setIsPaymentComplete(true);
+      
+      setIsComplete(true);
+      
       toast({
-        title: "התשלום בוצע בהצלחה!",
-        description: "ההרשמה הושלמה. פרטים ישלחו לדוא\"ל שלך.",
+        title: "התשלום התקבל בהצלחה",
+        description: "פרטי ההרשמה לטורניר יישלחו לדוא״ל שלך",
         variant: "default",
       });
-
-      onSuccess();
-
-      // Redirect to tournament page after a short delay
+      
+      // Wait 2 seconds before redirecting
       setTimeout(() => {
+        onSuccess();
         router.push(`/tournaments/${tournamentId}`);
-      }, 3000);
+      }, 2000);
     } catch (error) {
       console.error('Error processing payment:', error);
       toast({
         title: "שגיאה בעיבוד התשלום",
-        description: error instanceof Error ? error.message : 'אירעה שגיאה בעיבוד התשלום',
+        description: "אירעה שגיאה בתהליך התשלום. אנא נסה שנית.",
         variant: "destructive",
       });
     } finally {
       setIsProcessing(false);
     }
   };
-
-  if (isPaymentComplete) {
+  
+  const onSubmit = (data: CardFormData) => {
+    // Validate card number (Luhn algorithm can be added for production)
+    if (!validateCardNumber(data.cardNumber)) {
+      toast({
+        title: "שגיאה בפרטי כרטיס",
+        description: "מספר כרטיס האשראי אינו תקין",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Validate expiry date
+    const expiryValidation = validateExpiry(data.expiryDate);
+    if (expiryValidation !== true) {
+      toast({
+        title: "שגיאה בפרטי כרטיס",
+        description: expiryValidation as string,
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Validate CVV
+    if (!validateCVV(data.cvv)) {
+      toast({
+        title: "שגיאה בפרטי כרטיס",
+        description: "קוד האבטחה (CVV) אינו תקין",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Validate cardholder name
+    if (!validateName(data.cardholderName)) {
+      toast({
+        title: "שגיאה בפרטי כרטיס",
+        description: "יש להזין שם מלא על הכרטיס",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // All validations passed, process payment
+    processPayment(data);
+  };
+  
+  if (isComplete) {
     return (
-      <div className="flex flex-col items-center space-y-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-          <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-          </svg>
+      <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
+        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Check className="h-8 w-8 text-green-600" />
         </div>
-        <h3 className="text-xl font-semibold text-green-800">התשלום בוצע בהצלחה!</h3>
-        <p className="text-green-700 text-center">
+        <h3 className="text-xl font-semibold text-green-800 mb-2">התשלום התקבל בהצלחה!</h3>
+        <p className="text-green-700">
           ההרשמה לטורניר הושלמה. אישור ישלח לדוא"ל שלך בהקדם.
         </p>
-        <Button 
-          onClick={() => router.push(`/tournaments/${tournamentId}`)}
-          className="mt-4"
-        >
-          לדף הטורניר
-        </Button>
       </div>
     );
   }
-
+  
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between border-b pb-3 mb-4">
-        <div className="flex items-center">
-          <CreditCard className="h-5 w-5 mr-2 text-blue-600" />
-          <h3 className="font-semibold text-lg">תשלום בכרטיס אשראי</h3>
+      <div className="bg-white p-5 rounded-lg border border-gray-200">
+        <div className="flex items-center gap-3 mb-4 rtl:space-x-reverse">
+          <CreditCardIcon className="h-6 w-6 text-blue-600" />
+          <div>
+            <h4 className="font-medium">תשלום בכרטיס אשראי</h4>
+            <p className="text-sm text-gray-600">תשלום מאובטח. כל הפרטים מוצפנים.</p>
+          </div>
         </div>
-        <div className="text-sm text-blue-600 font-medium">
+        
+        <div className="text-xl font-bold text-blue-600 mb-6">
           {amount}₪
         </div>
-      </div>
-
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="card-number">מספר כרטיס</Label>
-          <div className="relative">
-            <Input
-              id="card-number"
-              type="text"
-              placeholder="0000 0000 0000 0000"
-              value={cardNumber}
-              onChange={handleCardNumberChange}
-              maxLength={19}
-              className="pl-10"
-              dir="ltr"
-            />
-            <CreditCard className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="card-holder">שם בעל הכרטיס</Label>
-          <Input
-            id="card-holder"
-            type="text"
-            placeholder="ישראל ישראלי"
-            value={cardHolder}
-            onChange={(e) => setCardHolder(e.target.value)}
-            dir="rtl"
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
+        
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="expiry-date">תוקף</Label>
+            <Label htmlFor="cardholderName">שם בעל הכרטיס</Label>
             <Input
-              id="expiry-date"
-              type="text"
-              placeholder="MM/YY"
-              value={expiryDate}
-              onChange={handleExpiryDateChange}
-              maxLength={5}
-              dir="ltr"
+              id="cardholderName"
+              placeholder="ישראל ישראלי"
+              {...register('cardholderName', { required: true })}
+              className={errors.cardholderName ? "border-red-500" : ""}
+              dir="rtl"
             />
+            {errors.cardholderName && <p className="text-red-500 text-sm">יש להזין שם מלא</p>}
           </div>
+          
           <div className="space-y-2">
-            <Label htmlFor="cvv">קוד אבטחה (CVV)</Label>
+            <Label htmlFor="cardNumber">מספר כרטיס</Label>
             <div className="relative">
               <Input
-                id="cvv"
-                type="text"
-                placeholder="123"
-                value={cvv}
-                onChange={handleCvvChange}
-                maxLength={3}
-                className="pl-10"
+                id="cardNumber"
+                placeholder="XXXX XXXX XXXX XXXX"
+                {...register('cardNumber', { required: true })}
+                className={errors.cardNumber ? "border-red-500" : ""}
                 dir="ltr"
               />
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            </div>
+            {errors.cardNumber && <p className="text-red-500 text-sm">יש להזין מספר כרטיס תקין</p>}
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="expiryDate">תוקף</Label>
+              <Input
+                id="expiryDate"
+                placeholder="MM/YY"
+                {...register('expiryDate', { required: true })}
+                className={errors.expiryDate ? "border-red-500" : ""}
+                dir="ltr"
+                maxLength={5}
+              />
+              {errors.expiryDate && <p className="text-red-500 text-sm">יש להזין תאריך תקף</p>}
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="cvv">CVV</Label>
+              <Input
+                id="cvv"
+                type="password"
+                placeholder="XXX"
+                maxLength={4}
+                {...register('cvv', { required: true })}
+                className={errors.cvv ? "border-red-500" : ""}
+                dir="ltr"
+              />
+              {errors.cvv && <p className="text-red-500 text-sm">יש להזין קוד אבטחה</p>}
             </div>
           </div>
-        </div>
-      </div>
-
-      <div className="border-t pt-4 mt-2">
-        <div className="text-xs text-gray-500 mb-4 flex items-center">
-          <Lock className="h-3 w-3 mr-1" />
-          העסקה מאובטחת ומוצפנת בתקן SSL. פרטי הכרטיס אינם נשמרים במערכת.
-        </div>
-        <Button
-          onClick={processPayment}
-          disabled={isProcessing}
-          className="w-full bg-green-600 hover:bg-green-700"
-        >
-          {isProcessing ? (
-            <>
-              <LoaderCircle className="h-4 w-4 mr-2 animate-spin" />
-              מעבד תשלום...
-            </>
-          ) : (
-            `שלם ${amount}₪`
-          )}
-        </Button>
+          
+          <div className="flex flex-col mt-6">
+            <Button 
+              type="submit" 
+              disabled={isProcessing}
+              className="w-full"
+            >
+              {isProcessing ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                  <span>מעבד תשלום...</span>
+                </div>
+              ) : (
+                <span>שלם {amount}₪</span>
+              )}
+            </Button>
+            
+            <div className="text-xs text-gray-500 mt-2 text-center">
+              המידע מאובטח ומוצפן. לא נשמור את פרטי כרטיס האשראי שלך.
+            </div>
+          </div>
+        </form>
       </div>
     </div>
   );
