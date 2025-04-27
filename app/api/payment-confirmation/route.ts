@@ -34,9 +34,36 @@ export async function POST(request: Request) {
       );
     }
 
+    // Check for valid status
+    if (!['pending', 'confirmed', 'failed', 'refunded'].includes(body.paymentStatus)) {
+      return NextResponse.json(
+        { error: 'סטטוס תשלום לא חוקי' },
+        { status: 400 }
+      );
+    }
+
     // Generate a reference number if one is not provided
     const paymentReference = body.paymentReference || 
       `${body.paymentMethod}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+    // Create a transaction record
+    const transactionStatus = body.paymentStatus === 'confirmed' ? 'completed' : body.paymentStatus;
+    
+    await prisma.transaction.create({
+      data: {
+        registrationId: body.registrationId,
+        amount: registration.tournament.price || 0,
+        currency: 'ILS',
+        status: transactionStatus,
+        paymentMethod: body.paymentMethod,
+        paymentReference: paymentReference,
+        externalTransactionId: body.externalTransactionId,
+        notes: body.notes || `תשלום טורניר: ${registration.tournament.name}`,
+        evidenceUrl: body.evidenceUrl,
+        completedAt: body.paymentStatus === 'confirmed' ? new Date() : null,
+        processedByAdminId: body.processedByAdminId,
+      }
+    });
 
     // Update the registration with payment details
     const updatedRegistration = await prisma.tournamentRegistration.update({
@@ -71,6 +98,17 @@ export async function POST(request: Request) {
           });
           
           console.log(`Player ${registration.playerId} added to tournament ${registration.tournamentId} after payment confirmation`);
+          
+          // TODO: Send email confirmation to the player
+          // In the future, implement email notification here
+          // sendConfirmationEmail(registration.email, {
+          //   playerName: registration.name,
+          //   tournamentName: registration.tournament.name,
+          //   tournamentDate: registration.tournament.startDate,
+          //   paymentAmount: registration.tournament.price,
+          //   paymentMethod: body.paymentMethod,
+          //   paymentReference: paymentReference,
+          // });
         } else {
           console.log(`Player ${registration.playerId} already in tournament ${registration.tournamentId}`);
         }
@@ -79,8 +117,6 @@ export async function POST(request: Request) {
         // Continue execution even if player update fails
       }
     }
-
-    // TODO: In the future, send a confirmation email to the user
 
     return NextResponse.json({
       success: true,

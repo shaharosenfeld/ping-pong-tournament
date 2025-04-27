@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { SelectGroup } from "@/components/ui/select";
 import { ChevronRight } from "lucide-react";
+import PaymentEvidenceUploader from "@/components/PaymentEvidenceUploader";
 
 interface Player {
   id: string;
@@ -272,13 +273,27 @@ export default function RegisterPage() {
       if (method === 'bit') {
         // Open Bit payment link in new window
         if (bitPaymentLink) {
-          window.open(bitPaymentLink, '_blank');
+          // Store registration ID in localStorage for recovery
+          localStorage.setItem('pendingRegistrationId', registrationId);
           
-          // Ask the user if payment was completed
+          const bitWindow = window.open(bitPaymentLink, '_blank');
+          
+          if (!bitWindow) {
+            toast({
+              title: "שגיאה בפתיחת קישור",
+              description: "לא הצלחנו לפתוח את קישור התשלום. אנא אפשר חלונות קופצים או נסה שוב.",
+              variant: "destructive",
+            });
+            setIsSubmitting(false);
+            return;
+          }
+          
+          // Ask the user if payment was completed - with clearer wording
           setTimeout(() => {
             const confirmed = confirm(
-              "האם ביצעת את התשלום בביט?\n" +
-              "לחץ 'אישור' אם התשלום הושלם, או 'ביטול' אם לא."
+              "האם השלמת את התשלום בביט?\n\n" +
+              "⚠️ חשוב: אישור תשלום שלא בוצע בפועל הוא עבירה על תנאי השימוש.\n\n" +
+              "לחץ 'אישור' רק אם התשלום הושלם, או 'ביטול' אם טרם ביצעת את התשלום."
             );
             
             if (confirmed) {
@@ -286,28 +301,42 @@ export default function RegisterPage() {
             } else {
               toast({
                 title: "תשלום לא הושלם",
-                description: "תוכל להשלים את התשלום מאוחר יותר באזור האישי",
+                description: "תוכל להשלים את התשלום מאוחר יותר דרך הקישור שישלח במייל או באזור האישי",
                 variant: "default",
               });
             }
-          }, 5000);
+          }, 10000); // Increased timeout to 10 seconds for better user experience
         } else {
           toast({
             title: "שגיאה",
-            description: "לא ניתן ליצור קישור תשלום בביט",
+            description: "לא ניתן ליצור קישור תשלום בביט. אנא פנה למנהל המערכת.",
             variant: "destructive",
           });
         }
       } else if (method === 'paybox') {
         // Open Paybox payment link in new window
         if (payboxPaymentLink) {
-          window.open(payboxPaymentLink, '_blank');
+          // Store registration ID in localStorage for recovery
+          localStorage.setItem('pendingRegistrationId', registrationId);
           
-          // Ask the user if payment was completed
+          const payboxWindow = window.open(payboxPaymentLink, '_blank');
+          
+          if (!payboxWindow) {
+            toast({
+              title: "שגיאה בפתיחת קישור",
+              description: "לא הצלחנו לפתוח את קישור התשלום. אנא אפשר חלונות קופצים או נסה שוב.",
+              variant: "destructive",
+            });
+            setIsSubmitting(false);
+            return;
+          }
+          
+          // Ask the user if payment was completed - with clearer wording
           setTimeout(() => {
             const confirmed = confirm(
-              "האם ביצעת את התשלום בPaybox?\n" +
-              "לחץ 'אישור' אם התשלום הושלם, או 'ביטול' אם לא."
+              "האם השלמת את התשלום ב-Paybox?\n\n" +
+              "⚠️ חשוב: אישור תשלום שלא בוצע בפועל הוא עבירה על תנאי השימוש.\n\n" +
+              "לחץ 'אישור' רק אם התשלום הושלם, או 'ביטול' אם טרם ביצעת את התשלום."
             );
             
             if (confirmed) {
@@ -315,15 +344,15 @@ export default function RegisterPage() {
             } else {
               toast({
                 title: "תשלום לא הושלם",
-                description: "תוכל להשלים את התשלום מאוחר יותר באזור האישי",
+                description: "תוכל להשלים את התשלום מאוחר יותר דרך הקישור שישלח במייל או באזור האישי",
                 variant: "default",
               });
             }
-          }, 5000);
+          }, 10000); // Increased timeout to 10 seconds for better user experience
         } else {
           toast({
             title: "שגיאה",
-            description: "לא קיים קישור תשלום בפייבוקס",
+            description: "לא קיים קישור תשלום בפייבוקס. אנא פנה למנהל המערכת.",
             variant: "destructive",
           });
         }
@@ -332,7 +361,7 @@ export default function RegisterPage() {
       console.error('Error processing payment:', error);
       toast({
         title: "שגיאה",
-        description: "אירעה שגיאה בעיבוד התשלום",
+        description: "אירעה שגיאה בעיבוד התשלום. אנא נסה שוב או פנה לתמיכה.",
         variant: "destructive",
       });
     } finally {
@@ -395,7 +424,7 @@ export default function RegisterPage() {
               <div className="space-y-6">
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-green-800">
                   <h3 className="font-bold text-lg mb-2">ההרשמה בוצעה בהצלחה! 🎉</h3>
-                  <p>כעת יש להשלים את התשלום באחת מהדרכים הבאות:</p>
+                  <p>כעת יש להשלים את התשלום על סך <span className="font-bold">{tournament.price}₪</span> באחת מהדרכים הבאות:</p>
                 </div>
                 
                 <div className="grid gap-4">
@@ -403,14 +432,23 @@ export default function RegisterPage() {
                     <h3 className="font-semibold text-gray-700">אפשרויות תשלום:</h3>
                     
                     {bitPaymentLink && (
-                      <div className="bg-white border rounded-lg p-4 shadow-sm">
+                      <div className="bg-white border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow duration-200">
                         <div className="flex justify-between items-center">
                           <div>
                             <h4 className="font-medium">תשלום באמצעות ביט</h4>
                             <p className="text-sm text-gray-500">העברה פשוטה וקלה לטלפון {tournament.bitPaymentPhone}</p>
+                            <div className="text-xs text-blue-600 mt-1">
+                              שם: {tournament.bitPaymentName || `טורניר ${tournament.name}`}
+                            </div>
                           </div>
-                          <Button asChild variant="outline" className="bg-blue-50">
-                            <a href={bitPaymentLink} target="_blank" rel="noopener noreferrer" className="flex items-center">
+                          <Button asChild variant="outline" className="bg-blue-50 hover:bg-blue-100">
+                            <a 
+                              href={bitPaymentLink} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="flex items-center"
+                              onClick={() => localStorage.setItem('pendingRegistrationId', registrationId || '')}
+                            >
                               <img src="/bit-logo.png" alt="ביט" className="h-4 w-4 mr-2" />
                               שלם {tournament.price}₪
                             </a>
@@ -420,14 +458,20 @@ export default function RegisterPage() {
                     )}
                     
                     {payboxPaymentLink && (
-                      <div className="bg-white border rounded-lg p-4 shadow-sm">
+                      <div className="bg-white border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow duration-200">
                         <div className="flex justify-between items-center">
                           <div>
                             <h4 className="font-medium">תשלום באמצעות Paybox</h4>
                             <p className="text-sm text-gray-500">תשלום מאובטח דרך לינק Paybox</p>
                           </div>
-                          <Button asChild variant="outline" className="bg-green-50">
-                            <a href={payboxPaymentLink} target="_blank" rel="noopener noreferrer" className="flex items-center">
+                          <Button asChild variant="outline" className="bg-green-50 hover:bg-green-100">
+                            <a 
+                              href={payboxPaymentLink} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="flex items-center"
+                              onClick={() => localStorage.setItem('pendingRegistrationId', registrationId || '')}
+                            >
                               שלם {tournament.price}₪
                             </a>
                           </Button>
@@ -437,7 +481,12 @@ export default function RegisterPage() {
                   </div>
                   
                   <div className="border-t pt-4 mt-4">
-                    <p className="text-sm text-gray-500 mb-4">לאחר שביצעת את התשלום, לחץ על כפתור "אישור תשלום" להשלמת התהליך:</p>
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 mb-4">
+                      <p className="text-sm text-yellow-800">
+                        <span className="font-bold">⚠️ שים לב:</span> לאחר שביצעת את התשלום, לחץ על כפתור "אישור תשלום" להשלמת התהליך.
+                        אישור זה הוא הצהרה שהתשלום אכן בוצע.
+                      </p>
+                    </div>
                     <div className="flex flex-col sm:flex-row gap-3">
                       <Button 
                         variant="default" 
@@ -452,6 +501,29 @@ export default function RegisterPage() {
                       >
                         חזרה לדף הטורניר
                       </Button>
+                    </div>
+                    
+                    {/* Option to upload payment evidence */}
+                    <div className="mt-8">
+                      <div className="text-sm text-gray-500 mb-2">
+                        או לחלופין, אם כבר ביצעת תשלום ויש לך צילום מסך של האישור:
+                      </div>
+                      {registrationId && (
+                        <PaymentEvidenceUploader 
+                          registrationId={registrationId} 
+                          onSuccess={() => {
+                            toast({
+                              title: "התקבלה הוכחת תשלום",
+                              description: "הוכחת התשלום התקבלה בהצלחה ותיבדק בקרוב על ידי מנהל המערכת.",
+                              variant: "default",
+                            });
+                            
+                            setTimeout(() => {
+                              router.push(`/tournaments/${tournamentId}`);
+                            }, 3000);
+                          }}
+                        />
+                      )}
                     </div>
                   </div>
                 </div>

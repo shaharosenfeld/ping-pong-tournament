@@ -97,23 +97,45 @@ model Notification {
 }
 
 model TournamentRegistration {
-  id               String     @id @default(cuid())
+  id               String       @id @default(cuid())
   tournamentId     String
   playerId         String
-  paymentStatus    String     @default("pending")
-  createdAt        DateTime   @default(now())
-  updatedAt        DateTime   @updatedAt
+  paymentStatus    String       @default("pending")
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
   email            String
-  isApproved       Boolean    @default(false)
+  isApproved       Boolean      @default(false)
   name             String
-  paymentMethod    String     @default("bit")
+  paymentMethod    String       @default("bit")
   paymentReference String?
   phone            String
-  registrationDate DateTime   @default(now())
-  player           Player     @relation(fields: [playerId], references: [id])
-  tournament       Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  registrationDate DateTime     @default(now())
+  player           Player       @relation(fields: [playerId], references: [id])
+  tournament       Tournament   @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  transactions     Transaction[] @relation("RegistrationTransactions")
 
   @@unique([tournamentId, playerId])
   @@index([tournamentId])
   @@index([email, phone])
+}
+
+model Transaction {
+  id                     String                @id @default(cuid())
+  registrationId         String
+  amount                 Float
+  currency               String                @default("ILS")
+  status                 String                @default("pending") // pending, completed, failed, refunded
+  paymentMethod          String
+  paymentReference       String?
+  externalTransactionId  String?
+  notes                  String?
+  evidenceUrl            String?               // For payment screenshot uploads
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  completedAt            DateTime?
+  processedByAdminId     String?
+  registration           TournamentRegistration @relation("RegistrationTransactions", fields: [registrationId], references: [id], onDelete: Cascade)
+  
+  @@index([registrationId])
+  @@index([status])
 }
