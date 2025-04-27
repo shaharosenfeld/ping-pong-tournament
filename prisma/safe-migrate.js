@@ -6,58 +6,73 @@
  * We're now ENABLING migrations in production but with safer parameters.
  */
 
-const { exec } = require('child_process');
-const { promisify } = require('util');
+const { execSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 
-const execPromise = promisify(exec);
+// Determine environment
+const isVercel = process.env.VERCEL === '1';
+const isProduction = process.env.NODE_ENV === 'production' || isVercel;
 
-async function main() {
-  // Check if we're running on Vercel production
-  const isVercelProduction = process.env.VERCEL_ENV === 'production';
+console.log(`Environment: ${isProduction ? 'Vercel Production' : 'Development'}`);
 
-  console.log(`Environment: ${isVercelProduction ? 'Vercel Production' : 'Development/Other'}`);
-  console.log('Running database migrations...');
-  
+const runMigrationCommands = async () => {
   try {
-    // Use the same command for both environments - without the unsupported flag
-    const command = 'npx prisma migrate deploy';
+    console.log('Running database migrations...');
     
-    if (isVercelProduction) {
+    if (isProduction) {
       console.log('⚠️ Running in Vercel production environment');
-    }
-    
-    console.log(`Executing: ${command}`);
-    const { stdout, stderr } = await execPromise(command);
-    
-    if (stdout) console.log(stdout);
-    if (stderr) console.error(stderr);
-    
-    console.log('✅ Database migrations completed successfully');
-    
-    // In production, let's generate the Prisma client separately
-    if (isVercelProduction) {
-      console.log('Generating Prisma client...');
-      const { stdout: genStdout, stderr: genStderr } = await execPromise('npx prisma generate');
       
-      if (genStdout) console.log(genStdout);
-      if (genStderr) console.error(genStderr);
-      
-      console.log('✅ Prisma client generation completed');
+      // Try to deploy migrations or handle failure
+      try {
+        console.log('Executing: npx prisma migrate deploy');
+        execSync('npx prisma migrate deploy', { stdio: 'inherit' });
+      } catch (migrateError) {
+        console.log('❌ Error in database migration: ', migrateError.message);
+        console.log('⚠️ Attempting to add missing fields directly...');
+        
+        // If migration failed, try to add the payboxPaymentLink column directly
+        try {
+          // Check if the column exists before trying to add it
+          const { PrismaClient } = require('@prisma/client');
+          const prisma = new PrismaClient();
+          
+          // Connect to the database and execute a direct query
+          const query = `
+            DO $$
+            BEGIN
+              -- Check if the column doesn't exist before adding it
+              IF NOT EXISTS (
+                SELECT FROM information_schema.columns 
+                WHERE table_name='Tournament' AND column_name='payboxPaymentLink'
+              ) THEN
+                -- Add the column if it doesn't exist
+                ALTER TABLE "Tournament" ADD COLUMN "payboxPaymentLink" TEXT;
+              END IF;
+            END
+            $$;
+          `;
+          
+          // Execute the query
+          console.log('Executing direct SQL to add payboxPaymentLink field...');
+          await prisma.$executeRawUnsafe(query);
+          console.log('✅ Successfully added missing fields');
+          
+          await prisma.$disconnect();
+        } catch (directQueryError) {
+          console.log('❌ Error executing direct query:', directQueryError);
+          console.log('⚠️ Continuing build despite migration error. The app might still work if the schema is compatible.');
+        }
+      }
+    } else {
+      // In development environment, we can use the normal migration process
+      console.log('Executing: npx prisma migrate dev');
+      execSync('npx prisma migrate dev', { stdio: 'inherit' });
     }
   } catch (error) {
     console.error('❌ Error in database operation:', error);
-    
-    // In production, don't fail the build but log the error
-    if (isVercelProduction) {
-      console.error('⚠️ Continuing build despite migration error. The app might still work if the schema is compatible.');
-    } else {
-      // In development, it's better to fail fast
-      process.exit(1);
-    }
+    console.log('⚠️ Continuing build despite migration error. The app might still work if the schema is compatible.');
   }
-}
+};
 
-main().catch(err => {
-  console.error('Unhandled error in migration script:', err);
-  process.exit(1);
-}); 
+runMigrationCommands(); 

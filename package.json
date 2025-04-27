@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && node prisma/safe-migrate.js && next build",
+    "build": "prisma generate && node prisma/safe-migrate.js && node prisma/add-paybox-field.js && next build",
     "start": "next start",
     "lint": "next lint",
     "seed": "node prisma/seed.js",
@@ -13,7 +13,8 @@
     "db:migrate:safe": "node prisma/safe-migrate.js",
     "db:migrate:force": "prisma migrate deploy --skip-generate",
     "db:verify": "node prisma/verify-schema.js",
-    "db:restore": "node prisma/restore-data.js"
+    "db:restore": "node prisma/restore-data.js",
+    "db:add-paybox": "node prisma/add-paybox-field.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

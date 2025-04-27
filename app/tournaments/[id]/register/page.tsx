@@ -11,7 +11,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { Trophy, ArrowLeft, AlertTriangle } from "lucide-react"
 import Link from "next/link"
 import { Loader2 } from "lucide-react"
-import PaymentMethodSelector from "@/components/PaymentMethodSelector"
+import PaymentMethodSelector from "@/app/components/PaymentMethodSelector"
 
 export default function TournamentRegisterPage({ params }: { params: { id: string } }) {
   const router = useRouter()
