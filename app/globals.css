@@ -1,6 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@import './mobile-utilities.css';
 
 @layer base {
   :root {
@@ -193,4 +194,97 @@ input, select, textarea, button {
 }
 .no-scrollbar::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Opera */
+}
+
+/* Enhanced Mobile Experience - Additional Rules */
+@media (max-width: 640px) {
+  /* Better spacing for mobile */
+  .container, .content-container {
+    @apply px-4 py-3;
+  }
+  
+  /* Increase touch targets */
+  button, 
+  .btn,
+  a, 
+  input[type="checkbox"], 
+  input[type="radio"],
+  .clickable {
+    @apply min-h-[44px] min-w-[44px];
+  }
+  
+  /* Improved form inputs for mobile */
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    @apply p-3 text-base;
+    font-size: 16px !important; /* Prevents zoom on iOS */
+  }
+  
+  /* Fix for position fixed elements (bottom bars, etc) */
+  .fixed-mobile-bottom {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding-bottom: env(safe-area-inset-bottom, 0.5rem);
+    background-color: white;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+    z-index: 40;
+  }
+  
+  /* Payment form specific enhancements */
+  .payment-container {
+    @apply p-3;
+  }
+  
+  .payment-form input {
+    @apply h-12 px-4 text-base;
+  }
+  
+  .payment-form button {
+    @apply h-12 text-base w-full;
+  }
+  
+  /* Larger text for essential information */
+  .payment-amount, .payment-total {
+    @apply text-xl font-bold;
+  }
+  
+  /* Ensure complete visibility of payment tabs on mobile */
+  .payment-tabs button {
+    @apply py-3 px-2 text-sm;
+  }
+  
+  /* Card adaptations for mobile */
+  .card {
+    @apply rounded-lg shadow-sm mx-0 my-2 p-4;
+  }
+}
+
+/* iOS-specific fixes */
+@supports (-webkit-touch-callout: none) {
+  /* Fix for iOS Safari 100vh issue */
+  .h-screen {
+    height: -webkit-fill-available;
+  }
+  
+  /* Prevent rubber-band scrolling effects */
+  html, body {
+    position: fixed;
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+  }
+  
+  #__next, .app-container {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    height: 100%;
+  }
+  
+  /* Prevent input zoom */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
 }

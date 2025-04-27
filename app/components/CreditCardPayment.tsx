@@ -220,7 +220,7 @@ export default function CreditCardPayment({
   
   if (isComplete) {
     return (
-      <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
+      <div className="bg-green-50 border border-green-200 rounded-lg p-4 sm:p-6 text-center">
         <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <Check className="h-8 w-8 text-green-600" />
         </div>
@@ -234,7 +234,7 @@ export default function CreditCardPayment({
   
   return (
     <div className="space-y-6">
-      <div className="bg-white p-5 rounded-lg border border-gray-200">
+      <div className="bg-white p-4 sm:p-5 rounded-lg border border-gray-200">
         <div className="flex items-center gap-3 mb-4 rtl:space-x-reverse">
           <CreditCardIcon className="h-6 w-6 text-blue-600" />
           <div>
@@ -254,7 +254,7 @@ export default function CreditCardPayment({
               id="cardholderName"
               placeholder="ישראל ישראלי"
               {...register('cardholderName', { required: true })}
-              className={errors.cardholderName ? "border-red-500" : ""}
+              className={`${errors.cardholderName ? "border-red-500" : ""} h-12 px-4 text-base`}
               dir="rtl"
             />
             {errors.cardholderName && <p className="text-red-500 text-sm">יש להזין שם מלא</p>}
@@ -267,8 +267,10 @@ export default function CreditCardPayment({
                 id="cardNumber"
                 placeholder="XXXX XXXX XXXX XXXX"
                 {...register('cardNumber', { required: true })}
-                className={errors.cardNumber ? "border-red-500" : ""}
+                className={`${errors.cardNumber ? "border-red-500" : ""} h-12 px-4 text-base`}
                 dir="ltr"
+                inputMode="numeric"
+                pattern="[0-9\s]*"
               />
             </div>
             {errors.cardNumber && <p className="text-red-500 text-sm">יש להזין מספר כרטיס תקין</p>}
@@ -281,9 +283,11 @@ export default function CreditCardPayment({
                 id="expiryDate"
                 placeholder="MM/YY"
                 {...register('expiryDate', { required: true })}
-                className={errors.expiryDate ? "border-red-500" : ""}
+                className={`${errors.expiryDate ? "border-red-500" : ""} h-12 px-4 text-base`}
                 dir="ltr"
                 maxLength={5}
+                inputMode="numeric"
+                pattern="[0-9/]*"
               />
               {errors.expiryDate && <p className="text-red-500 text-sm">יש להזין תאריך תקף</p>}
             </div>
@@ -292,12 +296,14 @@ export default function CreditCardPayment({
               <Label htmlFor="cvv">CVV</Label>
               <Input
                 id="cvv"
-                type="password"
+                type="tel"
                 placeholder="XXX"
                 maxLength={4}
                 {...register('cvv', { required: true })}
-                className={errors.cvv ? "border-red-500" : ""}
+                className={`${errors.cvv ? "border-red-500" : ""} h-12 px-4 text-base`}
                 dir="ltr"
+                inputMode="numeric"
+                pattern="[0-9]*"
               />
               {errors.cvv && <p className="text-red-500 text-sm">יש להזין קוד אבטחה</p>}
             </div>
@@ -307,11 +313,11 @@ export default function CreditCardPayment({
             <Button 
               type="submit" 
               disabled={isProcessing}
-              className="w-full"
+              className="w-full h-12 text-base touch-target"
             >
               {isProcessing ? (
                 <div className="flex items-center justify-center gap-2">
-                  <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                  <div className="h-5 w-5 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
                   <span>מעבד תשלום...</span>
                 </div>
               ) : (

@@ -37,7 +37,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="he" dir="rtl" suppressHydrationWarning>
+    <html lang="he" dir="rtl" suppressHydrationWarning className="overflow-x-hidden">
       <body className={`${inter.className} min-h-screen bg-gradient-to-b from-blue-50 via-white to-blue-50 overflow-x-hidden`}>
         <ThemeProvider
           attribute="class"
