@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { createNotification } from '@/lib/db'
 import { validateServerAdminToken } from '@/lib/admin-utils'
-
-const prisma = new PrismaClient()
 
 // Helper function to generate matches for a tournament
 async function generateMatches(
@@ -246,6 +244,7 @@ export async function POST(request: Request) {
       registrationDeadline: body.registrationDeadline ? new Date(body.registrationDeadline) : null,
       bitPaymentPhone: body.bitPaymentPhone || null,
       bitPaymentName: body.bitPaymentName || null,
+      payboxPaymentLink: body.payboxPaymentLink || null,
       price: body.price ? parseFloat(body.price) : null,
       firstPlacePrize: body.firstPlacePrize || null,
       secondPlacePrize: body.secondPlacePrize || null,

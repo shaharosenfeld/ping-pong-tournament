@@ -7,20 +7,25 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { toast } from "@/hooks/use-toast"
+import { useToast } from "@/components/ui/use-toast" 
 import { Trophy, ArrowLeft, AlertTriangle } from "lucide-react"
 import Link from "next/link"
 import { Loader2 } from "lucide-react"
+import PaymentMethodSelector from "@/components/PaymentMethodSelector"
 
 export default function TournamentRegisterPage({ params }: { params: { id: string } }) {
   const router = useRouter()
+  const { toast } = useToast()
   const [tournament, setTournament] = useState<any>(null)
   const [players, setPlayers] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedPlayer, setSelectedPlayer] = useState("")
   const [email, setEmail] = useState("")
   const [name, setName] = useState("")
+  const [phone, setPhone] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
+  const [showPaymentForm, setShowPaymentForm] = useState(false)
+  const [registration, setRegistration] = useState<any>(null)
 
   useEffect(() => {
     const fetchTournament = async () => {
@@ -68,7 +73,7 @@ export default function TournamentRegisterPage({ params }: { params: { id: strin
     }
     
     fetchTournament()
-  }, [params.id, router])
+  }, [params.id, router, toast])
   
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -114,6 +119,8 @@ export default function TournamentRegisterPage({ params }: { params: { id: strin
           playerId: selectedPlayer,
           email,
           name,
+          phone,
+          paymentMethod: null // נאפשר לבחור אמצעי תשלום בשלב הבא
         }),
       })
       
@@ -124,25 +131,16 @@ export default function TournamentRegisterPage({ params }: { params: { id: strin
       
       const data = await response.json()
       
-      // קוד להפנייה לאפליקציית bit לתשלום
-      // בינתיים נוסיף לינק לתשלום באמצעות bit
-      const bitPaymentUrl = generateBitPaymentLink(
-        tournament.price || 0,
-        tournament.name,
-        selectedPlayer,
-        params.id
-      )
+      // שמור את פרטי ההרשמה לשימוש אמצעי התשלום
+      setRegistration(data.registration)
       
-      // פתיחת חלון עם הקישור לתשלום
-      window.open(bitPaymentUrl, '_blank')
+      // הצג את טופס התשלום
+      setShowPaymentForm(true)
       
       toast({
         title: "ההרשמה בוצעה בהצלחה",
-        description: "הועברת לדף התשלום. לאחר התשלום תקבל אישור במייל.",
+        description: "כעת ניתן לבחור אמצעי תשלום",
       })
-      
-      // חזרה לדף הטורניר
-      router.push(`/tournaments/${params.id}`)
     } catch (error) {
       console.error("Registration error:", error)
       toast({
@@ -155,25 +153,16 @@ export default function TournamentRegisterPage({ params }: { params: { id: strin
     }
   }
   
-  // פונקציה ליצירת לינק לאפליקציית bit
-  const generateBitPaymentLink = (
-    amount: number,
-    tournamentName: string,
-    playerId: string,
-    tournamentId: string
-  ) => {
-    // מציאת השחקן הנבחר
-    const player = players.find(p => p.id === playerId)
-    const playerName = player ? player.name : 'שחקן'
+  const handlePaymentSuccess = () => {
+    toast({
+      title: "התשלום בוצע בהצלחה",
+      description: "ההרשמה לטורניר הושלמה. אישור יישלח לדוא״ל שלך.",
+    })
     
-    // יצירת הודעה לתשלום
-    const paymentMessage = `תשלום עבור ${playerName} בטורניר ${tournamentName}`
-    
-    // יצירת קישור לאפליקציית bit
-    // במקרה אמיתי יש להחליף למספר הטלפון האמיתי של המארגן
-    const phoneNumber = "0501234567" // טלפון של מארגן הטורניר
-    
-    return `https://www.bitpay.co.il/he/p2p/?phone=${phoneNumber}&amount=${amount}&message=${encodeURIComponent(paymentMessage)}`
+    // המתן רגע ואז חזור לדף הטורניר
+    setTimeout(() => {
+      router.push(`/tournaments/${params.id}`)
+    }, 1500)
   }
   
   if (isLoading) {
@@ -237,7 +226,9 @@ export default function TournamentRegisterPage({ params }: { params: { id: strin
             <div className="p-2 bg-white rounded-full shadow-sm">
               <Trophy className="h-5 w-5 text-blue-600" />
             </div>
-            <CardTitle className="text-xl text-blue-800">הרשמה לטורניר</CardTitle>
+            <CardTitle className="text-xl text-blue-800">
+              {showPaymentForm ? "תשלום עבור הטורניר" : "הרשמה לטורניר"}
+            </CardTitle>
           </div>
           <CardDescription>
             {tournament.name}
@@ -245,76 +236,98 @@ export default function TournamentRegisterPage({ params }: { params: { id: strin
         </CardHeader>
         
         <CardContent className="pt-6">
-          <form onSubmit={handleRegister}>
-            <div className="grid gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="player">בחר שחקן</Label>
-                <Select value={selectedPlayer} onValueChange={setSelectedPlayer}>
-                  <SelectTrigger id="player">
-                    <SelectValue placeholder="בחר שחקן עבורו אתה משלם" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {players.map((player) => (
-                      <SelectItem key={player.id} value={player.id}>
-                        {player.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="name">שם מלא</Label>
-                <Input 
-                  id="name" 
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="הזן את שמך המלא"
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="email">אימייל</Label>
-                <Input 
-                  id="email" 
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="הזן את כתובת האימייל שלך"
-                  required
-                />
-                <p className="text-xs text-gray-500">
-                  אישור תשלום ועדכונים יישלחו לכתובת זו
-                </p>
-              </div>
-              
-              <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                <h3 className="font-semibold text-blue-800 mb-2">פרטי תשלום</h3>
-                <p className="text-sm">
-                  דמי השתתפות: <span className="font-semibold">{tournament.price} ₪</span>
-                </p>
-                <p className="text-xs text-gray-500 mt-2">
-                  התשלום יתבצע באמצעות אפליקציית bit
-                </p>
-              </div>
-            </div>
-            
-            <Button 
-              type="submit"
-              className="w-full mt-6 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600"
-              disabled={isProcessing}
-            >
-              {isProcessing ? (
-                <div className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>מעבד...</span>
+          {showPaymentForm && registration ? (
+            <PaymentMethodSelector
+              registrationId={registration.id}
+              tournamentId={params.id}
+              amount={tournament.price || 0}
+              bitPaymentPhone={tournament.bitPaymentPhone}
+              bitPaymentName={tournament.bitPaymentName}
+              payboxPaymentLink={tournament.payboxPaymentLink}
+              onSuccess={handlePaymentSuccess}
+            />
+          ) : (
+            <form onSubmit={handleRegister}>
+              <div className="grid gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="player">בחר שחקן</Label>
+                  <Select value={selectedPlayer} onValueChange={setSelectedPlayer}>
+                    <SelectTrigger id="player">
+                      <SelectValue placeholder="בחר שחקן עבורו אתה משלם" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {players.map((player) => (
+                        <SelectItem key={player.id} value={player.id}>
+                          {player.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              ) : (
-                <span>המשך לתשלום</span>
-              )}
-            </Button>
-          </form>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="name">שם מלא</Label>
+                  <Input 
+                    id="name" 
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="הזן את שמך המלא"
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="email">אימייל</Label>
+                  <Input 
+                    id="email" 
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="הזן את כתובת האימייל שלך"
+                    required
+                  />
+                  <p className="text-xs text-gray-500">
+                    אישור תשלום ועדכונים יישלחו לכתובת זו
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="phone">טלפון (אופציונלי)</Label>
+                  <Input 
+                    id="phone" 
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="הזן את מספר הטלפון שלך"
+                  />
+                </div>
+                
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                  <h3 className="font-semibold text-blue-800 mb-2">פרטי תשלום</h3>
+                  <p className="text-sm">
+                    דמי השתתפות: <span className="font-semibold">{tournament.price} ₪</span>
+                  </p>
+                  <p className="text-xs text-gray-500 mt-2">
+                    בשלב הבא תוכל לבחור את אמצעי התשלום המועדף עליך
+                  </p>
+                </div>
+              </div>
+              
+              <Button 
+                type="submit"
+                className="w-full mt-6 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600"
+                disabled={isProcessing}
+              >
+                {isProcessing ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>מעבד...</span>
+                  </div>
+                ) : (
+                  <span>המשך לתשלום</span>
+                )}
+              </Button>
+            </form>
+          )}
         </CardContent>
       </Card>
     </div>
