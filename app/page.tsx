@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,6 +10,11 @@ import { toast } from "@/components/ui/use-toast"
 import { useAuth } from "./hooks/use-auth"
 import Image from "next/image"
 import { motion } from "framer-motion"
+import MobilePageLayout from './components/MobilePageLayout'
+import MobileNavigation from './components/MobileNavigation'
+import TournamentCard from './components/TournamentCard'
+import { ToastContainer, ToastRef } from './components/ToastNotification'
+import { addDays, subDays } from 'date-fns'
 
 interface RecentTournament {
   id: string
@@ -67,7 +72,7 @@ const itemVariants = {
 
 const MotionCard = motion(Card);
 
-export default function HomePage() {
+export default function Home() {
   const [stats, setStats] = useState<Stats>({
     activeTournaments: 0,
     upcomingMatches: 0,
@@ -77,7 +82,8 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(false)
   const [recentMatches, setRecentMatches] = useState<any[]>([])
   const { isAdmin } = useAuth()
-
+  const toastRef = useRef<ToastRef>(null)
+  
   // הוספת פונקציה לפורמט התאריך
   const formatDate = (dateString: string | Date) => {
     const date = new Date(dateString);
@@ -211,362 +217,193 @@ export default function HomePage() {
     }
   };
 
+  // Demo tournaments
+  const tournaments = [
+    {
+      id: '1',
+      title: 'Summer Championship 2023',
+      location: 'Central Sports Center, New York',
+      date: addDays(new Date(), 15),
+      participantsCount: 24,
+      maxParticipants: 32,
+      registrationDeadline: addDays(new Date(), 7),
+      level: 'All Levels',
+      prizePool: '$1,000',
+      imageSrc: 'https://images.unsplash.com/photo-1609710228159-0fa9bd7c0827?ixlib=rb-1.2.1&auto=format&fit=crop&w=1500&q=80'
+    },
+    {
+      id: '2',
+      title: 'Weekly Club Tournament',
+      location: 'Downtown Ping Pong Club',
+      date: addDays(new Date(), 3),
+      participantsCount: 16,
+      maxParticipants: 16,
+      registrationDeadline: subDays(new Date(), 1),
+      level: 'Intermediate',
+      imageSrc: 'https://images.unsplash.com/photo-1611251135345-18c56206de1e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1500&q=80'
+    },
+    {
+      id: '3',
+      title: 'Professional Circuit - Round 4',
+      location: 'National Sports Arena',
+      date: addDays(new Date(), 30),
+      participantsCount: 12,
+      maxParticipants: 24,
+      registrationDeadline: addDays(new Date(), 14),
+      level: 'Advanced',
+      prizePool: '$5,000',
+      imageSrc: 'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?ixlib=rb-1.2.1&auto=format&fit=crop&w=1500&q=80'
+    },
+    {
+      id: '4',
+      title: 'Youth Championship 2023',
+      location: 'Community Center',
+      date: subDays(new Date(), 5),
+      participantsCount: 20,
+      maxParticipants: 20,
+      registrationDeadline: subDays(new Date(), 12),
+      level: 'Beginner',
+      imageSrc: 'https://images.unsplash.com/photo-1583500178450-e59e4309b57d?ixlib=rb-1.2.1&auto=format&fit=crop&w=1500&q=80'
+    }
+  ];
+  
+  // Show welcome toast on initial load
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (toastRef.current) {
+        toastRef.current.showToast('Welcome to Ping Pong Tournament App!', 'info', 5000);
+      }
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, []);
+  
+  // Tabs for the tournament filter
+  const [activeTab, setActiveTab] = useState('upcoming');
+  
+  // Filter tournaments based on active tab
+  const filteredTournaments = tournaments.filter(tournament => {
+    if (activeTab === 'upcoming') {
+      return new Date(tournament.date) > new Date();
+    } else if (activeTab === 'past') {
+      return new Date(tournament.date) < new Date();
+    }
+    return true;
+  });
+
   return (
-    <div className="pb-12">
-      <div className="container mx-auto">
-        {/* Welcome Header */}
+    <div className="bg-gray-50 min-h-screen pb-safe">
+      {/* Mobile Navigation */}
+      <MobileNavigation />
+      
+      {/* Page Layout */}
+      <MobilePageLayout 
+        title="Ping Pong Tournaments"
+        subtitle="Find and join tournaments"
+      >
+        {/* Hero section */}
         <motion.div 
-          className="text-center my-8 md:my-12 px-4"
-          initial={{ opacity: 0, y: -20 }}
+          className="mb-6 rounded-xl overflow-hidden relative"
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ delay: 0.1 }}
         >
-          <motion.h1 
-            className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 text-blue-700"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2, duration: 0.7 }}
+          <div 
+            className="h-48 bg-gradient-to-r from-blue-600 to-blue-400 relative"
           >
-            ברוכים הבאים לטורניר פינג פונג מקצועי
-          </motion.h1>
-          <motion.p 
-            className="text-xl text-muted-foreground max-w-2xl mx-auto"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4, duration: 0.5 }}
-          >
-            מערכת לניהול טורנירי פינג פונג עם מעקב אחר משחקים, שחקנים וליגות
-          </motion.p>
-        </motion.div>
-
-        {/* Stats Overview */}
-        <motion.div 
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8 px-4 md:px-0"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          <motion.div variants={itemVariants}>
-            <MotionCard 
-              className="bg-card hover:bg-accent/5 transition-colors shadow-lg hover:shadow-xl"
-              whileHover={{ y: -5, transition: { duration: 0.2 } }}
-            >
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2">
-                  <div className="bg-blue-100 p-2 rounded-full">
-                    <Trophy className="h-6 w-6 text-blue-500" />
-                  </div>
-                  טורנירים פעילים
-                </CardTitle>
-                <CardDescription>מספר הטורנירים הפעילים כרגע</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 text-transparent bg-clip-text">
-                  {stats.activeTournaments}
-                </div>
-                <Link href="/tournaments" className="mt-3 inline-flex items-center text-sm text-muted-foreground hover:text-primary group">
-                  צפה בכל הטורנירים
-                  <ArrowUpRight className="mr-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </Link>
-              </CardContent>
-            </MotionCard>
-          </motion.div>
-
-          <motion.div variants={itemVariants}>
-            <MotionCard 
-              className="bg-card hover:bg-accent/5 transition-colors shadow-lg hover:shadow-xl"
-              whileHover={{ y: -5, transition: { duration: 0.2 } }}
-            >
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2">
-                  <div className="bg-green-100 p-2 rounded-full">
-                    <Table className="h-6 w-6 text-green-500" />
-                  </div>
-                  משחקים קרובים
-                </CardTitle>
-                <CardDescription>המשחקים המתוכננים הקרובים</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-500 text-transparent bg-clip-text">
-                  {stats.upcomingMatches}
-                </div>
-                <Link href="/matches" className="mt-3 inline-flex items-center text-sm text-muted-foreground hover:text-primary group">
-                  צפה בכל המשחקים
-                  <ArrowUpRight className="mr-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </Link>
-              </CardContent>
-            </MotionCard>
-          </motion.div>
-
-          <motion.div variants={itemVariants}>
-            <MotionCard 
-              className="bg-card hover:bg-accent/5 transition-colors shadow-lg hover:shadow-xl sm:col-span-2 lg:col-span-1"
-              whileHover={{ y: -5, transition: { duration: 0.2 } }}
-            >
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2">
-                  <div className="bg-purple-100 p-2 rounded-full">
-                    <Users className="h-6 w-6 text-purple-500" />
-                  </div>
-                  שחקנים רשומים
-                </CardTitle>
-                <CardDescription>סה"כ שחקנים פעילים</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 text-transparent bg-clip-text">
-                  {stats.totalPlayers}
-                </div>
-                <Link href="/players" className="mt-3 inline-flex items-center text-sm text-muted-foreground hover:text-primary group">
-                  צפה בכל השחקנים
-                  <ArrowUpRight className="mr-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </Link>
-              </CardContent>
-            </MotionCard>
-          </motion.div>
-        </motion.div>
-
-        {/* Latest Tournament Section */}
-        {latestTournament && (
-          <motion.div 
-            className="mb-8 md:mb-12 px-4 md:px-0"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7, duration: 0.5 }}
-          >
-            <div className="flex items-center justify-between mb-4 md:mb-6">
-              <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-yellow-500" />
-                הטורניר האחרון
-              </h2>
-            </div>
-            
-            <MotionCard 
-              className="border overflow-hidden shadow-lg hover:shadow-xl"
-              whileHover={{ y: -3, transition: { duration: 0.2 } }}
-            >
-              <CardHeader className="pb-2 bg-gradient-to-r from-blue-50 to-indigo-50">
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
-                  <div>
-                    <CardTitle className="text-lg md:text-xl">{latestTournament.name}</CardTitle>
-                    <div className="flex items-center gap-2 mt-1 text-sm text-gray-500">
-                      <Calendar className="h-4 w-4 flex-shrink-0" />
-                      <span>{latestTournament.date}</span>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="outline" className="bg-white/60 backdrop-blur-sm">
-                      {getFormatLabel(latestTournament.format)}
-                    </Badge>
-                    <Badge variant={getStatusVariant(latestTournament.status)} className="backdrop-blur-sm">
-                      {getStatusLabel(latestTournament.status)}
-                    </Badge>
-                  </div>
-                </div>
-              </CardHeader>
+            <div className="absolute inset-0 bg-black bg-opacity-20" />
+            <div className="absolute inset-0 p-6 flex flex-col justify-end">
+              <h1 className="text-white text-2xl font-bold">Play. Compete. Win.</h1>
+              <p className="text-white text-sm mt-2 opacity-90">Join tournaments and track your ping pong journey.</p>
               
-              <CardContent className="pt-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 shadow-sm">
-                    <h3 className="text-lg font-semibold mb-3 flex items-center">
-                      <Trophy className="h-5 w-5 text-yellow-500 ml-2" />
-                      סטטוס הטורניר
-                    </h3>
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">שחקנים:</span>
-                        <Badge variant="outline" className="bg-white">{latestTournament.players}</Badge>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">משחקים:</span>
-                        <Badge variant="outline" className="bg-white">{latestTournament.matches}</Badge>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">הושלמו:</span>
-                        <Badge variant="outline" className="bg-white">
-                          {latestTournament.completedMatches} / {latestTournament.matches}
-                        </Badge>
-                      </div>
-                      {latestTournament.winner && (
-                        <div className="flex justify-between items-center">
-                          <span className="text-muted-foreground">מנצח:</span>
-                          <Badge variant="outline" className="bg-yellow-100 text-yellow-800 flex items-center">
-                            <Star className="h-3 w-3 ml-1" />
-                            {latestTournament.winner}
-                          </Badge>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="bg-purple-50 p-4 rounded-lg border border-purple-100 shadow-sm flex flex-col justify-between">
-                    <h3 className="text-lg font-semibold mb-3 flex items-center">
-                      <Table className="h-5 w-5 text-blue-500 ml-2" />
-                      צפה בטבלה
-                    </h3>
-                    <div className="flex flex-col items-center justify-center mt-2">
-                      <p className="text-center text-muted-foreground mb-4 text-sm">
-                        לחץ על הכפתור למטה כדי לצפות בטבלת הדירוג המלאה של הטורניר
-                      </p>
-                      <Link href={`/tournaments/${latestTournament.id}?tab=standings`}>
-                        <Button className="w-full sm:w-auto group bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
-                          צפה בטבלת הדירוג
-                          <Table className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Tournament Prizes Section */}
-                {(latestTournament.price || latestTournament.firstPlacePrize || latestTournament.secondPlacePrize) && (
-                  <div className="mb-6">
-                    <h3 className="text-lg font-semibold mb-3 flex items-center">
-                      <Coins className="h-5 w-5 text-yellow-500 ml-2" />
-                      פרסים ותשלומים
-                    </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      {latestTournament.firstPlacePrize && (
-                        <div className="border-2 border-yellow-400 rounded-lg bg-gradient-to-b from-yellow-50 to-yellow-100 p-4 shadow-md hover:shadow-lg transition-all order-1 sm:order-2 col-span-1 sm:col-span-1 transform hover:-translate-y-1">
-                          <div className="flex flex-col items-center">
-                            <p className="text-xs font-medium text-yellow-700 mb-1">פרס גדול - מקום ראשון</p>
-                            <div className="flex items-center gap-1.5 mb-2">
-                              <Trophy className="h-6 w-6 text-yellow-500" />
-                            </div>
-                            <p className="text-xl font-bold text-yellow-800">{latestTournament.firstPlacePrize}</p>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {latestTournament.secondPlacePrize && (
-                        <div className="border border-blue-300 rounded-lg bg-blue-50 p-4 shadow-sm hover:shadow-md transition-all order-3 transform hover:-translate-y-1">
-                          <div className="flex flex-col items-center">
-                            <p className="text-xs font-medium text-blue-600 mb-1">מקום שני</p>
-                            <div className="flex items-center gap-1.5 mb-2">
-                              <Award className="h-5 w-5 text-blue-500" />
-                            </div>
-                            <p className="text-md font-semibold text-blue-700">{latestTournament.secondPlacePrize}</p>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {latestTournament.price && (
-                        <div className={`border rounded-lg p-4 shadow-sm hover:shadow-md transition-all order-2 sm:order-1 transform hover:-translate-y-1 ${
-                          latestTournament.registrationOpen 
-                            ? 'border-green-300 bg-green-50' 
-                            : 'border-gray-200 bg-gray-50'
-                        }`}>
-                          <div className="flex flex-col items-center">
-                            <p className="text-xs font-medium text-gray-600 mb-1">דמי השתתפות</p>
-                            <p className="text-md font-semibold mb-2">{latestTournament.price} ₪</p>
-                            
-                            {latestTournament.registrationOpen ? (
-                              <Link href={`/tournaments/${latestTournament.id}/register`} className="mt-2">
-                                <Button size="sm" variant="outline" className="bg-green-100 border-green-300 text-green-700 hover:bg-green-200 hover:text-green-800 flex items-center gap-1">
-                                  <span>הרשם עכשיו</span>
-                                  <ExternalLink className="h-3.5 w-3.5" />
-                                </Button>
-                              </Link>
-                            ) : (
-                              <Button size="sm" variant="outline" disabled className="bg-gray-100 border-gray-300 text-gray-500">
-                                ההרשמה סגורה
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </MotionCard>
-          </motion.div>
-        )}
-
-        {/* Features Section */}
-        <motion.div 
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 px-4 md:px-0"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          transition={{ delayChildren: 1.0 }}
-        >
-          <motion.div 
-            variants={itemVariants}
-            className="p-5 md:p-6 rounded-2xl bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border border-purple-200 shadow-md hover:shadow-lg transition-all"
-            whileHover={{ y: -5, transition: { duration: 0.2 } }}
-          >
-            <div className="bg-white/40 p-3 rounded-full w-fit mb-3 md:mb-4">
-              <Trophy className="h-10 w-10 md:h-12 md:w-12 text-purple-600 dark:text-purple-400" />
-            </div>
-            <h3 className="text-lg md:text-xl font-semibold mb-2">ניהול תחרויות מתקדם</h3>
-            <p className="text-muted-foreground text-sm md:text-base">
-              מערכת חכמה לניהול טורנירים בפורמטים שונים: נוק-אאוט, ליגה וקבוצות
-            </p>
-          </motion.div>
-
-          <motion.div 
-            variants={itemVariants}
-            className="p-5 md:p-6 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border border-blue-200 shadow-md hover:shadow-lg transition-all"
-            whileHover={{ y: -5, transition: { duration: 0.2 } }}
-          >
-            <div className="bg-white/40 p-3 rounded-full w-fit mb-3 md:mb-4">
-              <BarChart className="h-10 w-10 md:h-12 md:w-12 text-blue-600 dark:text-blue-400" />
-            </div>
-            <h3 className="text-lg md:text-xl font-semibold mb-2">סטטיסטיקות מפורטות</h3>
-            <p className="text-muted-foreground text-sm md:text-base">
-              מעקב אחר ביצועי שחקנים, דירוגים ותוצאות בזמן אמת
-            </p>
-          </motion.div>
-
-          <motion.div 
-            variants={itemVariants}
-            className="p-5 md:p-6 rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950 dark:to-emerald-900 border border-emerald-200 shadow-md hover:shadow-lg transition-all"
-            whileHover={{ y: -5, transition: { duration: 0.2 } }}
-          >
-            <div className="bg-white/40 p-3 rounded-full w-fit mb-3 md:mb-4">
-              <Users className="h-10 w-10 md:h-12 md:w-12 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <h3 className="text-lg md:text-xl font-semibold mb-2">ניהול שחקנים</h3>
-            <p className="text-muted-foreground text-sm md:text-base">
-              מעקב אחר התקדמות השחקנים, דירוגים והישגים לאורך זמן
-            </p>
-          </motion.div>
-        </motion.div>
-        
-        {/* PaddleBot Section */}
-        <motion.div 
-          className="mt-6 px-4 md:px-0"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.3, duration: 0.5 }}
-        >
-          <div className="p-5 md:p-6 rounded-2xl bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950 dark:to-yellow-900 border border-yellow-200 shadow-md hover:shadow-lg transition-all">
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-              <motion.div 
-                className="p-2 rounded-xl"
-                whileHover={{ rotate: [0, -5, 5, -5, 0], transition: { duration: 0.5 } }}
+              <motion.button 
+                className="mt-4 bg-white text-blue-600 px-4 py-2 rounded-lg font-medium text-sm shadow-lg inline-flex items-center justify-center touch-target"
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  if (toastRef.current) {
+                    toastRef.current.showToast('Feature coming soon!', 'info');
+                  }
+                }}
               >
-                <div className="h-20 w-20 flex items-center justify-center">
-                  <Image
-                    src="/paddlebot-logo.png"
-                    alt="PaddleBot Logo"
-                    width={75}
-                    height={75}
-                    className="object-contain drop-shadow-md rounded-xl"
-                    priority
-                  />
-                </div>
-              </motion.div>
-              <div className="flex-1">
-                <h3 className="text-lg md:text-xl font-semibold mb-2 text-center sm:text-right">עוזר חכם לניהול טורנירים</h3>
-                <p className="text-muted-foreground text-sm md:text-base text-center sm:text-right">
-                  הכירו את ה-PaddleBot, המסייע בארגון טורנירים, הגרלת משחקים והמלצות לשיבוץ שחקנים
-                </p>
-              </div>
+                Get Started
+              </motion.button>
             </div>
           </div>
         </motion.div>
-      </div>
+        
+        {/* Tournament filter tabs */}
+        <div className="mb-4 border-b pb-2">
+          <div className="flex space-x-2 overflow-x-auto ios-scroll hide-scrollbar">
+            <button
+              onClick={() => setActiveTab('upcoming')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap touch-target ${
+                activeTab === 'upcoming'
+                  ? 'bg-primary text-white'
+                  : 'bg-gray-100 text-gray-700'
+              }`}
+            >
+              Upcoming Tournaments
+            </button>
+            <button
+              onClick={() => setActiveTab('past')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap touch-target ${
+                activeTab === 'past'
+                  ? 'bg-primary text-white'
+                  : 'bg-gray-100 text-gray-700'
+              }`}
+            >
+              Past Tournaments
+            </button>
+            <button
+              onClick={() => {
+                if (toastRef.current) {
+                  toastRef.current.showToast('My Tournaments feature coming soon!', 'info');
+                }
+              }}
+              className="px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-gray-100 text-gray-700 touch-target"
+            >
+              My Tournaments
+            </button>
+          </div>
+        </div>
+        
+        {/* Tournament list */}
+        <motion.div
+          className="space-y-4"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          {filteredTournaments.length === 0 ? (
+            <motion.div 
+              className="p-8 text-center text-gray-500"
+              variants={itemVariants}
+            >
+              No tournaments found.
+            </motion.div>
+          ) : (
+            filteredTournaments.map((tournament, index) => (
+              <TournamentCard
+                key={tournament.id}
+                index={index}
+                id={tournament.id}
+                title={tournament.title}
+                location={tournament.location}
+                date={tournament.date}
+                participantsCount={tournament.participantsCount}
+                maxParticipants={tournament.maxParticipants}
+                registrationDeadline={tournament.registrationDeadline}
+                level={tournament.level as any}
+                prizePool={tournament.prizePool}
+                imageSrc={tournament.imageSrc}
+              />
+            ))
+          )}
+        </motion.div>
+      </MobilePageLayout>
+      
+      {/* Toast Container for notifications */}
+      <ToastContainer ref={toastRef} position="bottom-center" />
     </div>
   )
 }

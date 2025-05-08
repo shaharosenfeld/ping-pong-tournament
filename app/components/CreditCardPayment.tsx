@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { Check, CreditCard as CreditCardIcon } from 'lucide-react';
+import { Check, CreditCard as CreditCardIcon, Lock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 
 interface CreditCardPaymentProps {
   registrationId: string;
@@ -33,13 +34,35 @@ export default function CreditCardPayment({
   const [isComplete, setIsComplete] = useState(false);
   const [cardNumberPreview, setCardNumberPreview] = useState('');
   const [formattedExpiry, setFormattedExpiry] = useState('');
+  const [cardType, setCardType] = useState<string>('');
   const { toast } = useToast();
   const router = useRouter();
   
-  const { register, handleSubmit, watch, formState: { errors }, setValue } = useForm<CardFormData>();
+  const { register, handleSubmit, watch, formState: { errors, isValid, isDirty }, setValue, trigger } = useForm<CardFormData>({
+    mode: 'onChange'
+  });
   
   const cardNumber = watch('cardNumber', '');
   const expiryDate = watch('expiryDate', '');
+
+  // Detect card type based on card number
+  useEffect(() => {
+    const cleanNumber = cardNumber.replace(/\s/g, '');
+    
+    if (cleanNumber.startsWith('4')) {
+      setCardType('visa');
+    } else if (/^5[1-5]/.test(cleanNumber)) {
+      setCardType('mastercard');
+    } else if (/^3[47]/.test(cleanNumber)) {
+      setCardType('amex');
+    } else if (/^(62|88)/.test(cleanNumber)) {
+      setCardType('unionpay');
+    } else if (cleanNumber.startsWith('6')) {
+      setCardType('discover');
+    } else {
+      setCardType('');
+    }
+  }, [cardNumber]);
 
   // Format card number with spaces for readability (XXXX XXXX XXXX XXXX)
   useEffect(() => {
@@ -220,7 +243,12 @@ export default function CreditCardPayment({
   
   if (isComplete) {
     return (
-      <div className="bg-green-50 border border-green-200 rounded-lg p-4 sm:p-6 text-center">
+      <motion.div 
+        className="bg-green-50 border border-green-200 rounded-lg p-4 sm:p-6 text-center"
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+      >
         <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <Check className="h-8 w-8 text-green-600" />
         </div>
@@ -228,109 +256,191 @@ export default function CreditCardPayment({
         <p className="text-green-700">
           ההרשמה לטורניר הושלמה. אישור ישלח לדוא"ל שלך בהקדם.
         </p>
-      </div>
+      </motion.div>
     );
   }
   
   return (
-    <div className="space-y-6">
-      <div className="bg-white p-4 sm:p-5 rounded-lg border border-gray-200">
+    <motion.div 
+      className="space-y-6"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <div className="bg-white p-4 sm:p-5 rounded-lg border border-gray-200 shadow-sm">
         <div className="flex items-center gap-3 mb-4 rtl:space-x-reverse">
-          <CreditCardIcon className="h-6 w-6 text-blue-600" />
+          <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
+            <CreditCardIcon className="h-6 w-6 text-blue-600" />
+          </div>
           <div>
             <h4 className="font-medium">תשלום בכרטיס אשראי</h4>
             <p className="text-sm text-gray-600">תשלום מאובטח. כל הפרטים מוצפנים.</p>
           </div>
         </div>
         
-        <div className="text-xl font-bold text-blue-600 mb-6">
+        <div className="text-xl font-bold text-blue-600 mb-6 payment-amount">
           {amount}₪
         </div>
         
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="cardholderName">שם בעל הכרטיס</Label>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <div className="mobile-form-group">
+            <Label htmlFor="cardholderName" className="mobile-form-label">שם בעל הכרטיס</Label>
             <Input
               id="cardholderName"
               placeholder="ישראל ישראלי"
-              {...register('cardholderName', { required: true })}
-              className={`${errors.cardholderName ? "border-red-500" : ""} h-12 px-4 text-base`}
+              {...register('cardholderName', { 
+                required: "יש להזין שם מלא", 
+                validate: validateName 
+              })}
+              className={`${errors.cardholderName ? "border-red-500 focus:border-red-500" : "focus:border-blue-500"} h-12 px-4 text-base transition duration-200`}
               dir="rtl"
             />
-            {errors.cardholderName && <p className="text-red-500 text-sm">יש להזין שם מלא</p>}
+            {errors.cardholderName && (
+              <motion.p 
+                className="text-red-500 text-sm mt-1 flex items-center gap-1"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+              >
+                {errors.cardholderName.message}
+              </motion.p>
+            )}
           </div>
           
-          <div className="space-y-2">
-            <Label htmlFor="cardNumber">מספר כרטיס</Label>
+          <div className="mobile-form-group">
+            <Label htmlFor="cardNumber" className="mobile-form-label">מספר כרטיס</Label>
             <div className="relative">
               <Input
                 id="cardNumber"
                 placeholder="XXXX XXXX XXXX XXXX"
-                {...register('cardNumber', { required: true })}
-                className={`${errors.cardNumber ? "border-red-500" : ""} h-12 px-4 text-base`}
+                {...register('cardNumber', { 
+                  required: "יש להזין מספר כרטיס", 
+                  validate: validateCardNumber 
+                })}
+                className={`${errors.cardNumber ? "border-red-500 focus:border-red-500" : "focus:border-blue-500"} h-12 px-4 text-base pr-10 transition duration-200`}
                 dir="ltr"
                 inputMode="numeric"
                 pattern="[0-9\s]*"
+                autoComplete="cc-number"
               />
+              {cardType && (
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  <img 
+                    src={`/card-icons/${cardType}.svg`} 
+                    alt={cardType} 
+                    className="h-6 w-auto"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                </div>
+              )}
             </div>
-            {errors.cardNumber && <p className="text-red-500 text-sm">יש להזין מספר כרטיס תקין</p>}
+            {errors.cardNumber && (
+              <motion.p 
+                className="text-red-500 text-sm mt-1 flex items-center gap-1"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+              >
+                {errors.cardNumber.message}
+              </motion.p>
+            )}
           </div>
           
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="expiryDate">תוקף</Label>
+            <div className="mobile-form-group">
+              <Label htmlFor="expiryDate" className="mobile-form-label">תוקף</Label>
               <Input
                 id="expiryDate"
                 placeholder="MM/YY"
-                {...register('expiryDate', { required: true })}
-                className={`${errors.expiryDate ? "border-red-500" : ""} h-12 px-4 text-base`}
+                {...register('expiryDate', { 
+                  required: "יש להזין תאריך תוקף", 
+                  validate: validateExpiry 
+                })}
+                className={`${errors.expiryDate ? "border-red-500 focus:border-red-500" : "focus:border-blue-500"} h-12 px-4 text-base transition duration-200`}
                 dir="ltr"
                 maxLength={5}
                 inputMode="numeric"
                 pattern="[0-9/]*"
+                autoComplete="cc-exp"
               />
-              {errors.expiryDate && <p className="text-red-500 text-sm">יש להזין תאריך תקף</p>}
+              {errors.expiryDate && (
+                <motion.p 
+                  className="text-red-500 text-sm mt-1 flex items-center gap-1"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                >
+                  {errors.expiryDate.message}
+                </motion.p>
+              )}
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="cvv">CVV</Label>
-              <Input
-                id="cvv"
-                type="tel"
-                placeholder="XXX"
-                maxLength={4}
-                {...register('cvv', { required: true })}
-                className={`${errors.cvv ? "border-red-500" : ""} h-12 px-4 text-base`}
-                dir="ltr"
-                inputMode="numeric"
-                pattern="[0-9]*"
-              />
-              {errors.cvv && <p className="text-red-500 text-sm">יש להזין קוד אבטחה</p>}
+            <div className="mobile-form-group">
+              <Label htmlFor="cvv" className="mobile-form-label">CVV</Label>
+              <div className="relative">
+                <Input
+                  id="cvv"
+                  type="tel"
+                  placeholder="XXX"
+                  maxLength={4}
+                  {...register('cvv', { 
+                    required: "יש להזין קוד אבטחה", 
+                    validate: validateCVV 
+                  })}
+                  className={`${errors.cvv ? "border-red-500 focus:border-red-500" : "focus:border-blue-500"} h-12 px-4 text-base pr-10 transition duration-200`}
+                  dir="ltr"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  autoComplete="cc-csc"
+                />
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  <Lock className="h-4 w-4 text-gray-400" />
+                </div>
+              </div>
+              {errors.cvv && (
+                <motion.p 
+                  className="text-red-500 text-sm mt-1 flex items-center gap-1"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                >
+                  {errors.cvv.message}
+                </motion.p>
+              )}
             </div>
           </div>
           
           <div className="flex flex-col mt-6">
-            <Button 
-              type="submit" 
-              disabled={isProcessing}
-              className="w-full h-12 text-base touch-target"
+            <motion.div
+              initial={{ opacity: 1 }}
+              animate={{ opacity: isProcessing ? 0.7 : 1 }}
+              transition={{ duration: 0.2 }}
             >
-              {isProcessing ? (
-                <div className="flex items-center justify-center gap-2">
-                  <div className="h-5 w-5 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                  <span>מעבד תשלום...</span>
-                </div>
-              ) : (
-                <span>שלם {amount}₪</span>
-              )}
-            </Button>
+              <Button 
+                type="submit" 
+                disabled={isProcessing}
+                className="w-full h-12 text-base touch-target press-effect"
+              >
+                {isProcessing ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="h-5 w-5 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                    <span>מעבד תשלום...</span>
+                  </div>
+                ) : (
+                  <span>שלם {amount}₪</span>
+                )}
+              </Button>
+            </motion.div>
             
-            <div className="text-xs text-gray-500 mt-2 text-center">
-              המידע מאובטח ומוצפן. לא נשמור את פרטי כרטיס האשראי שלך.
+            <div className="flex items-center justify-center gap-2 text-xs text-gray-500 mt-3">
+              <Lock className="h-3 w-3" />
+              <span>המידע מאובטח ומוצפן. לא נשמור את פרטי כרטיס האשראי שלך.</span>
             </div>
           </div>
         </form>
       </div>
-    </div>
+    </motion.div>
   );
 } 
